@@ -1,3 +1,3 @@
 #!/bin/sh
 
-find . | egrep -i '.(bak|~)$'| xargs rm -v
+find . -type f -regex "\./.*\(\.bak\|\~\)$" -exec rm -v {} \+
