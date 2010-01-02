@@ -1,9 +1,9 @@
 #!/bin/sh
 
-if [ -z $DISPLAY ]; then
-    ARGS="--tty"
-else
-    ARGS="--create-frame"
-fi
+EMACS="emacsclient --alternate-editor=\"\""
 
-exec emacsclient --alternate-editor="" $ARGS "$@"
+if [ -z $DISPLAY ]; then
+    exec ${EMACS} --tty "$@" &>/dev/null
+else
+    exec ${EMACS} --create-frame "$@" &>/dev/null &
+fi
