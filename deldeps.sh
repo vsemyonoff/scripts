@@ -1,1 +1,0 @@
-for i in "`pacman -Qdt | grep ''`"; do pacman -Rs `echo "$i"|cut -f 1 -d' '`; done
