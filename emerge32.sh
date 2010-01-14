@@ -1,3 +1,3 @@
 #!/bin/sh
 
-sudo bin32 emerge "$@"
+bin32 emerge "$@"
