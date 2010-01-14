@@ -1,3 +1,3 @@
 #!/bin/sh
 
-schroot -pqd "$(pwd)" -- "$@"
+exec schroot -pqd "$(pwd)" -- "$@"

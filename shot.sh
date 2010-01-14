@@ -1,3 +1,3 @@
 #!/bin/sh
 
-scrot shot-$(date +%Y%m%d).png
+exec scrot shot-$(date +%Y%m%d).png

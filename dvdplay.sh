@@ -1,3 +1,3 @@
 #!/bin/sh
 
-mplayer dvdnav:// -dvd-device "$(pwd)" &
+exec mplayer dvdnav:// -dvd-device "$(pwd)" &
