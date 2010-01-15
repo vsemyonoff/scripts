@@ -3,6 +3,9 @@
 env-update && \
 source /etc/profile && \
 
+# Reset options from make.conf
+export EMERGE_DEFAULT_OPTS=""
+
 locale-gen && \
 emerge --sync && \
 emerge portage && \
