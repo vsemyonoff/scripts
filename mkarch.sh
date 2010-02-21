@@ -2,21 +2,13 @@
 
 ####
 #
-# User test
-#
-if [ "$UID" != "0" ]; then
-    echo "Error: only root can use this script"
-    exit 1
-fi
-
-####
-#
 # Setup defaults
 #
 PRGNAME="$0"
 ROOTDIR="/opt/arch32"
 X86="true"
 GRUBINST="false"
+CURRARCH=$(uname -m)
 
 function usage() {
     cat << EOF
@@ -43,7 +35,18 @@ if [ $# -ge 1 ]; then
                         X86="true"
                         ;;
                     x86_64)
-                        X86="false"
+                        case $CURRARCH in
+                            i?86)
+                                echo "Error: installing 64 bit system from 32 bit not supported"
+                                exit 1
+                                ;;
+                            x86_64)
+                                X86="false"
+                                ;;
+                            *)
+                                echo "Error: unsupported architecture '$CURRARCH'"
+                                ;;
+                        esac
                         ;;
                     *)
                         echo "Error: unsupported architecture: $1"
@@ -79,7 +82,7 @@ if [ $# -ge 1 ]; then
                     ROOTPAR="$1"
                     ROOTNUM=$(echo $ROOTPAR | sed -r 's/(.*)([1-100])/\2/g')
                     if [ -z "$ROOTNUM" ]; then
-                        echo "Error: expected disk partition, not entry disk"
+                        echo "Error: expected disk partition, not entry disk '$1'"
                         usage
                         exit 1
                     fi
@@ -87,7 +90,6 @@ if [ $# -ge 1 ]; then
                     if [ -z "$ROOTDIR" ]; then
                         ROOTDIR=$(mktemp -d)
                         _TMP_="yes"
-                        mount "$ROOTPAR" "$ROOTDIR" || exit 1
                     fi
                 else
                     mkdir -p "$ROOTDIR" || exit 1
@@ -99,7 +101,7 @@ if [ $# -ge 1 ]; then
                 if [ $# -eq 0 ]; then
                     break
                 else
-                    echo "Unknown: unknown option: $1"
+                    echo "Error: unknown option '$1'"
                     usage
                     exit 1
                 fi
@@ -109,10 +111,24 @@ if [ $# -ge 1 ]; then
     done
 fi
 
+
+####
+#
+# User test
+#
+if [ "$UID" != "0" ]; then
+    echo "Error: only root can use this script"
+    exit 1
+fi
+
+
 ####
 #
 # Preinstall
 #
+if [ "$_TMP_" == "yes" ]; then
+    mount "$ROOTPAR" "$ROOTDIR" || exit 1
+fi
 mkdir -p "$ROOTDIR/etc/pacman.d" || exit 1
 mkdir -p "$ROOTDIR"/var/{cache/pacman/pkg,lib/pacman} || exit 1
 # Prepare mirror list
@@ -151,7 +167,7 @@ pacman --noconfirm --root $ROOTDIR              \
 # Postinstall
 #
 sed -ri 's/^HOOKS="(.*)"$/HOOKS="\1 usb"/g' "$ROOTDIR/etc/mkinitcpio.conf"
-mkinitcpio -g $ROOTDIR/boot/kernel26.img -c $ROOTDIR/etc/mkinitcpio.conf
+chroot "$ROOTDIR" mkinitcpio -p kernel26
 umount "$ROOTDIR/dev" || exit 1
 umount "$ROOTDIR/sys" || exit 1
 umount "$ROOTDIR/proc" || exit 1
@@ -196,10 +212,10 @@ root   $GROOTSTR
 kernel /boot/vmlinuz26 root=/dev/disk/by-uuid/$UUID quiet ro vga=791
 initrd /boot/kernel26.img
 
-title  Arch Linux Live (single user)
+title  Arch Linux Live (fallback)
 root   $GROOTSTR
-kernel /boot/vmlinuz26 root=/dev/disk/by-uuid/$UUID ro vga=normal single
-initrd /boot/kernel26.img
+kernel /boot/vmlinuz26 root=/dev/disk/by-uuid/$UUID ro vga=normal single 3
+initrd /boot/kernel26-fallback.img
 EOF
     fi
 fi
