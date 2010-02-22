@@ -6,18 +6,18 @@
 #
 PRGNAME="$0"
 ROOTDIR="/opt/arch32"
-X86="true"
+TARGETARCH="i686"
 GRUBINST="false"
 CURRARCH=$(uname -m)
 
 function usage() {
     cat << EOF
-usage: $(basename $PRGNAME) [ --arch x86 | x86_64 ] [ --backup FILE ] [ --root DEVICE | PATH ]
-    --arch   - target architecture (x86)
+usage: $(basename $PRGNAME) [--arch i686|x86_64] [--backup FILE] [--root DEVICE|PATH]
+    --arch   - target architecture (i686)
     --backup - archive with settings (none)
-    --grub   - install bootloader
+    --grub   - install bootloader (disabled)
     --help   - show this message
-    --root   - installation root formatted block device or premounted folder (/opt/arch32)
+    --root   - installation root block device or premounted folder (/opt/arch32)
 EOF
 }
 
@@ -32,16 +32,16 @@ if [ $# -ge 1 ]; then
                 shift
                 case $1 in
                     x86)
-                        X86="true"
+                        TARGETARCH="i686"
                         ;;
                     x86_64)
                         case $CURRARCH in
                             i?86)
-                                echo "Error: installing 64 bit system from 32 bit not supported"
+                                echo "Error: x86_64 installation from i686 is currently not supported"
                                 exit 1
                                 ;;
                             x86_64)
-                                X86="false"
+                                TARGETARCH="x86_64"
                                 ;;
                             *)
                                 echo "Error: unsupported architecture '$CURRARCH'"
@@ -49,7 +49,7 @@ if [ $# -ge 1 ]; then
                         esac
                         ;;
                     *)
-                        echo "Error: unsupported architecture: $1"
+                        echo "Error: unsupported target architecture '$1'"
                         usage
                         exit 1
                         ;;
@@ -80,7 +80,7 @@ if [ $# -ge 1 ]; then
                 fi
                 if [ -b "$1" ]; then
                     ROOTPAR="$1"
-                    ROOTNUM=$(echo $ROOTPAR | sed -r 's/(.*)([1-100])/\2/g')
+                    ROOTNUM=$(echo "$ROOTPAR" | sed -r 's/(.*)([1-100])/\2/g')
                     if [ -z "$ROOTNUM" ]; then
                         echo "Error: expected disk partition, not entry disk '$1'"
                         usage
@@ -88,7 +88,6 @@ if [ $# -ge 1 ]; then
                     fi
                     ROOTDIR=$(grep -m 1 "$ROOTPAR" /proc/mounts | cut -f 2 -d " ")
                     if [ -z "$ROOTDIR" ]; then
-                        ROOTDIR=$(mktemp -d)
                         _TMP_="yes"
                     fi
                 else
@@ -127,19 +126,23 @@ fi
 # Preinstall
 #
 if [ "$_TMP_" == "yes" ]; then
+    ROOTDIR=$(mktemp -d)
     mount "$ROOTPAR" "$ROOTDIR" || exit 1
 fi
 mkdir -p "$ROOTDIR/etc/pacman.d" || exit 1
 mkdir -p "$ROOTDIR"/var/{cache/pacman/pkg,lib/pacman} || exit 1
 # Prepare mirror list
 echo -ne "Target architecture: "
-if [ "$X86" == "true" ]; then
-    echo "'x86'"
-    sed -e 's/x86_64/i686/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
-else
-    echo "'x86_64'"
-    sed -e 's/i686/x86_64/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
-fi
+case "$TARGETARCH" in
+    i?86)
+        echo "'i686'"
+        sed -e 's/x86_64/i686/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
+        ;;
+    x86_64)
+        echo "'x86_64'"
+        sed -e 's/i686/x86_64/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
+        ;;
+esac
 sed -e 's@/etc/pacman.d/mirrorlist@/tmp/mirrorlist@g' /etc/pacman.conf > /tmp/pacman.conf
 # Mount filesystems
 mkdir -p "$ROOTDIR/dev" && mount -obind /dev "$ROOTDIR/dev" || exit 1
@@ -152,13 +155,13 @@ mkdir -p "$ROOTDIR/proc" && mount -obind /proc "$ROOTDIR/proc" || exit 1
 # Install
 #
 if [ -z "$ROOTPAR" ]; then
-    echo "Chroot environment installation root: '$ROOTDIR'"
+    echo "Chroot environment installation to: '$ROOTDIR'"
 else
     echo "Installation root device: '$ROOTPAR' mounted to '$ROOTDIR'"
 fi
 sleep 3
-pacman --noconfirm --root $ROOTDIR              \
-       --cachedir $ROOTDIR/var/cache/pacman/pkg \
+pacman --noconfirm --root "$ROOTDIR"              \
+       --cachedir "$ROOTDIR/var/cache/pacman/pkg" \
        --config /tmp/pacman.conf -Sy base || exit 1
 
 
@@ -168,6 +171,7 @@ pacman --noconfirm --root $ROOTDIR              \
 #
 sed -ri 's/^HOOKS="(.*)"$/HOOKS="\1 usb"/g' "$ROOTDIR/etc/mkinitcpio.conf"
 chroot "$ROOTDIR" mkinitcpio -p kernel26
+[ "$?" != "0" ] && exit 1
 umount "$ROOTDIR/dev" || exit 1
 umount "$ROOTDIR/sys" || exit 1
 umount "$ROOTDIR/proc" || exit 1
