@@ -12,12 +12,12 @@ CURRARCH=$(uname -m)
 
 function usage() {
     cat << EOF
-usage: $(basename $PRGNAME) [--arch i686|x86_64] [--backup FILE] [--root DEVICE|PATH]
-    --arch   - target architecture (i686)
-    --backup - archive with settings (none)
-    --grub   - install bootloader (disabled)
-    --help   - show this message
-    --root   - installation root block device or premounted folder (/opt/arch32)
+usage: $(basename $PRGNAME) [-a i686|x86_64] [-b FILE] [-g] [-h] [-r DEVICE|PATH]
+    -a --arch   - target architecture (i686)
+    -b --backup - archive with settings (none)
+    -g --grub   - install bootloader (disabled)
+    -h --help   - show this message
+    -r --root   - installation root block device or premounted folder (/opt/arch32)
 EOF
 }
 
@@ -28,23 +28,23 @@ EOF
 if [ $# -ge 1 ]; then
     while true; do
         case $1 in
-            --arch)
+            -a|--arch)
                 shift
                 case $1 in
-                    x86)
-                        TARGETARCH="i686"
+                    i686)
+                        TARGETARCH="$1"
                         ;;
                     x86_64)
                         case $CURRARCH in
                             i?86)
-                                echo "Error: x86_64 installation from i686 is currently not supported"
+                                echo "Error: '$1' installation from '$CURRARCH' is currently not supported"
                                 exit 1
                                 ;;
                             x86_64)
-                                TARGETARCH="x86_64"
+                                TARGETARCH="$1"
                                 ;;
                             *)
-                                echo "Error: unsupported architecture '$CURRARCH'"
+                                echo "Error: installation from '$CURRARCH' is currently not supported"
                                 ;;
                         esac
                         ;;
@@ -55,7 +55,7 @@ if [ $# -ge 1 ]; then
                         ;;
                 esac
                 ;;
-            --backup)
+            -b|--backup)
                 shift
                 if [ -z "$1" ]; then
                     echo "Error: backup archive not specified"
@@ -64,14 +64,14 @@ if [ $# -ge 1 ]; then
                 fi
                 BACKUP="$1"
                 ;;
-            --grub)
+            -g|--grub)
                 GRUBINST="true"
                 ;;
-            --help)
+            -h|--help)
                 usage
                 exit 0
                 ;;
-            --root)
+            -r|--root)
                 shift
                 if [ -z "$1" ]; then
                     echo "Error: installation root not specified"
