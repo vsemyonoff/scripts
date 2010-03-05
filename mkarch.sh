@@ -80,7 +80,7 @@ if [ $# -ge 1 ]; then
                 fi
                 if [ -b "$1" ]; then
                     ROOTPAR="$1"
-                    ROOTNUM=$(echo "$ROOTPAR" | sed -r 's/(.*)([1-100])/\2/g')
+                    ROOTNUM=$(echo "$ROOTPAR" | grep -oE '[0-9]*')
                     if [ -z "$ROOTNUM" ]; then
                         echo "Error: expected disk partition, not entry disk '$1'"
                         usage
@@ -189,7 +189,7 @@ if [ ! -z "$BACKUP" ]; then
 fi
 if [ ! -z "$ROOTPAR" ]; then
     # Setup fstab
-    UUID=$(ls -la /dev/disk/by-uuid/* | grep $(basename $ROOTPAR) | sed -r 's/^(.*)uuid\/(.*) -> (.*)$/\2/g')
+    UUID=$(blkid -s UUID -o value $ROOTPAR)
     cat << EOF > $ROOTDIR/etc/fstab
 devpts                                    /dev/pts    devpts    defaults            0  0
 shm                                       /dev/shm    tmpfs     nodev,nosuid        0  0
@@ -197,7 +197,7 @@ UUID=$UUID /           auto      defaults            0  1
 EOF
     if [ "$GRUBINST" == "true" ]; then
         # Install GRUB
-        ROOTDEV=$(echo $ROOTPAR | sed -r 's/(.*)([1-100])/\1/g')
+        ROOTDEV=$(echo $ROOTPAR | grep -oE '[^0-9]*')
         GROOTSTR="(hd0,$((ROOTNUM-1)))"
         cp -f $ROOTDIR/usr/lib/grub/i386-pc/* $ROOTDIR/boot/grub
         grub --batch --no-floppy --device-map=/dev/null << EOF
