@@ -160,7 +160,7 @@ else
     echo "Installation root device: '$ROOTPAR' mounted to '$ROOTDIR'"
 fi
 sleep 3
-pacman --noconfirm --root "$ROOTDIR"              \
+pacman --arch "$TARGETARCH" --noconfirm --root "$ROOTDIR" \
        --cachedir "$ROOTDIR/var/cache/pacman/pkg" \
        --config /tmp/pacman.conf -Sy base || exit 1
 
