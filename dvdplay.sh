@@ -2,4 +2,4 @@
 
 DEVICE="${1:-"$(pwd)"}"
 
-exec mplayer dvdnav:// -dvd-device "${DEVICE}"
+exec mplayer -nocache dvdnav:// -dvd-device "${DEVICE}"
