@@ -5,7 +5,7 @@
 #  Description:
 #
 #  Creation date: 2010.08.03 17:41:53
-#  Last modified: 2010.08.03 19:11:28
+#  Last modified: 2010.08.04 00:13:30
 #
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
@@ -38,6 +38,6 @@ if [ -z $OUTPUT ]; then
 fi
 
 killall aosd_cat &> /dev/null
-echo -n "`audtool2 --playlist-position` - `audtool2 --current-song` - `audtool2 --current-song-length` (`audtool2 --playback-status`)" | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
+echo -n "`audtool2 --playlist-position`. `audtool2 --current-song` - `audtool2 --current-song-length` (`audtool2 --playback-status`)" | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
 
 # End of script
