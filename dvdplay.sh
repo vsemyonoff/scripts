@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 DEVICE="${1:-"$(pwd)"}"
 

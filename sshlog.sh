@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 rm -f accepted.txt failed.txt
 FILES="auth.log auth.log.1 auth.log.2 auth.log.3 auth.log.4"
 

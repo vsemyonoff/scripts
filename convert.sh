@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 usage() {
   echo "usage: $0 from_encoding to_encoding"
@@ -16,20 +16,20 @@ recode() {
   newname=`echo "$1" | iconv -f $FROM -t $TO`
   [ ! $? == 0 ] && exit 1
   if [ ! "$1" ==  "$newname" ]; then
-	mv -iv "$1" "$newname"
-	[ ! $? == 0 ] && exit 1
+    mv -iv "$1" "$newname"
+    [ ! $? == 0 ] && exit 1
   fi
 }
 
 main() {
   ls | while read f
   do
-  	if [ -d "$f" ]; then
-	  cd "$f"
-	  main
-	  cd ..
-	fi
-	recode "$f"
+    if [ -d "$f" ]; then
+      cd "$f"
+      main
+      cd ..
+    fi
+    recode "$f"
   done
 }
 
