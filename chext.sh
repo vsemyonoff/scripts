@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
-for i in `find . -type f -name *.$1`;
+if [ $# -ne 2 ]; then
+    echo "usage: $0 oldext newext"
+    exit 1
+fi
+
+find . -type f -name "*.$1" | while read i
 do
-  mv -v "$i" ${i%%.$1}.$2
+    mv -v "$i" "${i%%.$1}.$2"
 done

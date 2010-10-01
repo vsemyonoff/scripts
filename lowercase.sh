@@ -3,18 +3,12 @@
 FROM=ЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁ
 TO=йцукенгшщзхъфывапролджэячсмитьбюё
 
-for f in *;
+find . -type f | while read i
 do
-    if [ -d "$f" ]; then
-        cd "$f"
-        lowercase
-        cd ..
-        if [ "$f" != "`echo \"$f\" | tr A-Z a-z | tr $FROM $TO`" ]; then
-            mv -iv "$f" "`echo \"$f\" | tr A-Z a-z | tr $FROM $TO`"
-        fi
-    elif [ -f "$f" ]; then
-        if [ "$f" != "`echo \"$f\" | tr A-Z a-z | tr $FROM $TO`" ]; then
-            mv -iv "$f" "`echo \"$f\" | tr A-Z a-z | tr $FROM $TO`"
-        fi
+    DIR=`dirname "$i"`
+    FILE=`basename "$i"`
+    FILENEW=`echo "$FILE" | tr A-Z a-z | tr $FROM $TO`
+    if [ "$FILE" != "$FILENEW" ]; then
+        mv -iv "$i" "$DIR/$FILENEW"
     fi
 done
