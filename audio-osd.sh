@@ -10,34 +10,21 @@
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
-PID=`pgrep audacious`
-PLAYER=`which audacious2`
+case $1 in
 
-if  [ -z $PID ] ; then
-    if [ -z $PLAYER ]; then
-        OUTPUT="audacious2 not installed"
-    else
-        bash -c "audacious2 &"
-    fi
-fi
+    play) (mpc status | grep -q "playing") && mpc pause || mpc play ;;
 
-if [ -z $OUTPUT ]; then
-    case $1 in
+    stop) mpc stop ;;
 
-       play) audtool2 --playback-playpause ;;
+    prev) mpc prev ;;
 
-       stop) audtool2 --playback-stop ;;
+    next) mpc next ;;
 
-       prev) audtool2 --playlist-reverse ;;
+    *) echo "Usage: $0 { play | stop | prev | next }"  && exit 1;;
 
-       next) audtool2 --playlist-advance ;;
-
-       *) echo "Usage: $0 { play | stop | prev | next }"  && exit 1;;
-
-    esac
-fi
+esac
 
 killall aosd_cat &> /dev/null
-echo -n "`audtool2 --playlist-position`. `audtool2 --current-song` - `audtool2 --current-song-length` (`audtool2 --playback-status`)" | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
+echo -n `mpc status` | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
 
 # End of script
