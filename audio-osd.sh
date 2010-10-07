@@ -12,7 +12,7 @@
 
 case $1 in
 
-    play) (mpc status | grep -q "playing") && mpc pause || mpc play ;;
+    play) mpc toggle ;;
 
     stop) mpc stop ;;
 
@@ -25,6 +25,6 @@ case $1 in
 esac
 
 killall aosd_cat &> /dev/null
-echo -n `mpc status` | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
+mpc status | aosd_cat -l 3 -n "Sans 20 bold" -o 3000 -R yellow -f 0
 
 # End of script
