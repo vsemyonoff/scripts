@@ -38,6 +38,6 @@ fi
 
 killall aosd_cat &> /dev/null
 
-echo "$A" | aosd_cat -n "Sans 20 bold" -o 3000 -R $OSDCOLOR -f 0
+echo "$A" | aosd_cat -n "Sans 20 bold" -o 0 -R $OSDCOLOR -f 0
 
 # End of script

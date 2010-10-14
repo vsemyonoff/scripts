@@ -11,6 +11,6 @@
 #
 
 OSDCOLOR=red
-echo "Suspend: not implemented" | aosd_cat -n "Sans 20 bold" -o 3000 -R $OSDCOLOR -f 0
+echo "Suspend: not implemented" | aosd_cat -n "Sans 20 bold" -o 0 -R $OSDCOLOR -f 0
 
 # End of script

@@ -25,6 +25,6 @@ case $1 in
 esac
 
 killall aosd_cat &> /dev/null
-mpc status | aosd_cat -l 3 -n "Sans 20 bold" -o 3000 -R yellow -f 0
+mpc status | aosd_cat -l 3 -n "Sans 20 bold" -o 0 -R yellow -f 0
 
 # End of script

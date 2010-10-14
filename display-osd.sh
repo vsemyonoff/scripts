@@ -11,6 +11,6 @@
 #
 
 OSDCOLOR=red
-echo "Display: not implemented" | aosd_cat -n "Sans 20 bold" -o 3000 -R $OSDCOLOR -f 0
+echo "Display: not implemented" | aosd_cat -n "Sans 20 bold" -o 0 -R $OSDCOLOR -f 0
 
 # End of script
