@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 #
-#  File: mixer-osd.sh
+#  File: volume.sh
 #  Description:
 #
 #  Creation date: 2010.08.03 16:45:13
-#  Last modified: 2010.10.12 14:19:09
+#  Last modified: 2010.08.03 16:45:58
 #
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
@@ -38,6 +38,6 @@ fi
 
 killall aosd_cat &> /dev/null
 
-echo "$A" | aosd_cat -n "Sans 20 bold" -o 0 -R $OSDCOLOR -f 3000
+echo "$A" | aosd_cat -n "Sans 20 bold" -o 3000 -R $OSDCOLOR -f 0
 
 # End of script

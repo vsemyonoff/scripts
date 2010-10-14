@@ -5,7 +5,7 @@
 #  Description:
 #
 #  Creation date: 2010.08.03 17:41:53
-#  Last modified: 2010.10.12 14:20:26
+#  Last modified: 2010.08.03 18:29:33
 #
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
@@ -27,6 +27,6 @@ sudo bash -c "echo $NEWVALUE > $CONTROL"
 
 killall aosd_cat &> /dev/null
 
-echo -n "LCD Brightness: $((100 / MAXIMUM * NEWVALUE + 4))%" | aosd_cat -n "Sans 20 bold" -o 0 -R yellow -f 3000
+echo -n "LCD Brightness: $((100 / MAXIMUM * NEWVALUE + 4))%" | aosd_cat -n "Sans 20 bold" -o 3000 -R yellow -f 0
 
 # End of script
