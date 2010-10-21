@@ -5,26 +5,28 @@
 #  Description:
 #
 #  Creation date: 2010.08.03 17:41:53
-#  Last modified: 2010.08.04 00:13:30
+#  Last modified: 2010.10.21 15:31:03
 #
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
 case $1 in
 
-    play) mpc toggle ;;
+    play) ncmpcpp toggle ;;
 
-    stop) mpc stop ;;
+    stop) ncmpcpp stop ;;
 
-    prev) mpc prev ;;
+    prev) ncmpcpp prev ;;
 
-    next) mpc next ;;
+    next) ncmpcpp next ;;
 
     *) echo "Usage: $0 { play | stop | prev | next }"  && exit 1;;
 
 esac
 
+STATUS="$(ncmpcpp --now-playing)"
+[ -x ${STATUS} ] && STATUS="STOPPED"
 killall aosd_cat &> /dev/null
-mpc status | aosd_cat -l 3 -n "Sans 20 bold" -o 0 -R yellow -f 0
+echo "${STATUS}" | aosd_cat -n "Sans 20 bold" -o 0 -R yellow -f 0
 
 # End of script
