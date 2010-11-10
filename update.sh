@@ -8,12 +8,12 @@ export EMERGE_DEFAULT_OPTS=""
 
 locale-gen && \
 emerge --sync && \
-emerge portage && \
-emerge linux-headers glibc binutils gcc-config gcc && \
+emerge --oneshot portage && \
+emerge --oneshot linux-headers glibc binutils gcc-config gcc && \
 binutils-config $(binutils-config -l | wc -l) && \
 gcc-config $(gcc-config -l | wc -l) && \
 source /etc/profile && \
-emerge -b glibc binutils gcc && \
+emerge --oneshot -b glibc binutils gcc && \
 echo "Toolchain update complete." > upd-"`date +%Y%m%d`".log
 
 [ $? == 0 ] && \
