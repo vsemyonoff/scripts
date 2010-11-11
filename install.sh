@@ -1,15 +1,28 @@
 #!/usr/bin/env bash
 
-[ -z $1 ] && echo "usage: $0 stage3" && exit 1
+[ ${UID} != 0 ] && echo "Use this script as root!!!" && exit 1
+[ -z "$1" ] && echo "usage: $0 [--update] stage3_name" && exit 1
+[ $# == 2 ] && STAGE="$2" || STAGE="$1"
+BACKUP="backup.tar.bz2"
+ROOT="/mnt/gentoo"
 
-GEN="/mnt/gentoo"
+tar xvjpf ${STAGE} -C ${ROOT} && \
+tar xvjf portage-latest.tar.bz2 -C ${ROOT}/usr && \
 
-tar xvjpf "$1" -C ${GEN} && \
-tar xvjf portage-latest.tar.bz2 -C ${GEN}/usr && \
-mount -t proc none ${GEN}/proc && \
-mount -t sysfs none ${GEN}/sys && \
-mount -o bind /dev ${GEN}/dev && \
-tar xvf etc.tar.bz2 -C ${GEN} && \
-cp -L /etc/resolv.conf ${GEN}/etc && \
-cp ./update.sh ${GEN}/root && \
-chroot ${GEN} /root/update.sh
+if [ -f ${BACKUP} ]; then
+    tar xvf ${BACKUP} -C ${ROOT} || exit 1
+fi
+
+if [ "$1" == "--update" ]; then
+    mount -t proc none ${ROOT}/proc && \
+    mount -t sysfs none ${ROOT}/sys && \
+    mount -o bind /dev ${ROOT}/dev || exit 1
+
+    cp -L /etc/resolv.conf ${ROOT}/etc && \
+    cp ./update.sh ${ROOT}/root && \
+    chroot ${ROOT} /root/update.sh
+
+    umount ${ROOT}/dev
+    umount ${ROOT}/sys
+    umount ${ROOT}/proc
+fi
