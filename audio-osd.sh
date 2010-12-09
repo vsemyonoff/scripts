@@ -25,7 +25,7 @@ case $1 in
 esac
 
 STATUS="$(ncmpcpp --now-playing)"
-[ -x ${STATUS} ] && STATUS="STOPPED"
+[ -z "${STATUS}" ] && STATUS="STOPPED"
 killall aosd_cat &> /dev/null
 echo "${STATUS}" | aosd_cat -n "Sans 20 bold" -o 0 -R yellow -f 0
 
