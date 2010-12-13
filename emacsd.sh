@@ -1,34 +1,24 @@
-#!/usr/bin/env bash
+#!/sbin/runscript
 
 #
 #  File: emacsd.sh
-#  Description:
+#  Description: system service to stop all emacs daemons
 #
-#  Version: emacsd.sh, 2010/08/26 12:38:37 EEST
+#  Version: emacsd.sh, 2010/12/13 02:00:06 EET
 #  Copyright © 2010 Vladyslav Semyonov <vsemyonoff@gmail.com>
 #
 
-. /etc/rc.conf
-. /etc/rc.d/functions
+start() {
+    ebegin "Starting Emacs daemon handler"
+    eend ${?}
+}
 
-case "$1" in
-    start)
-        add_daemon emacsd
-        ;;
-    stop)
-        stat_busy "Stopping emacs daemon"
-        exec find /tmp -maxdepth 1 -type d -name 'emacs*' -exec find {} -type s -name server \; | \
-            perl -ne 's/[^\d]//g; print scalar getpwuid($_), "\n"' | \
-            xargs -n 1 su -c /mnt/share/bin/killemacs -
-        stat_done
-        rm_daemon emacsd
-        ;;
-    restart)
-        $0 stop
-        $0 start
-        ;;
-    *)
-        echo "usage: $0 {start|stop|restart}"
-esac
+stop() {
+    ebegin "Stopping Emacs daemon instances"
+    exec find /tmp -maxdepth 1 -type d -name 'emacs*' -exec find {} -type s -name server \; | \
+        perl -ne 's/[^\d]//g; print scalar getpwuid($_), "\n"' | \
+        xargs -n 1 su -c /mnt/share/scripts/killemacs.sh -
+    eend ${?}
+}
 
 # End of emacsd.sh
