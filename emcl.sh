@@ -9,6 +9,9 @@ while (( "$#" )); do
     else
         EMACS_ARGS="${EMACS_ARGS} $1"
     fi
+    if [ "$1" == "-nw" ] || [ "$1" == "-t" ] || [ "$1" == "--tty" ]; then
+        NOFORK=1
+    fi
     shift
 done
 
