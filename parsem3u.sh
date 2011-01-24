@@ -5,7 +5,7 @@
 #  Description:
 #
 #  Creation date: 2011.01.22 01:51:51
-#  Last modified: 2011.01.22 16:38:42
+#  Last modified: 2011.01.22 16:47:03
 #
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
@@ -35,7 +35,7 @@ case "$(basename ${0})" in
     *)
         [ ! -f "${PLAYLIST}" ] && echo "Playlist not found: ${PLAYLIST}" && exit 1
         CHANNEL=$(echo `basename ${0}` | sed -e 's/_/\//g' | sed 's/+/\\+/g')
-        mplayer $(grep -A1 -E "EXTINF:0,${CHANNEL}" "${PLAYLIST}" | tail -n 1)
+        exec mplayer $(grep -A1 -E "EXTINF:0,${CHANNEL}" "${PLAYLIST}" | tail -n 1)
         ;;
 esac
 
