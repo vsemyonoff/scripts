@@ -35,7 +35,7 @@ case "$(basename ${0})" in
     *)
         [ ! -f "${PLAYLIST}" ] && echo "Playlist not found: ${PLAYLIST}" && exit 1
         CHANNEL=$(echo `basename ${0}` | sed -e 's/\\/\//g' | sed -e 's/_/\ /g' | sed 's/+/\\+/g')
-        exec mplayer $(grep -A1 -E "EXTINF:0,${CHANNEL}" "${PLAYLIST}" | tail -n 1)
+        exec urxvtc -e mplayer $(grep -A1 -E "EXTINF:0,${CHANNEL}" "${PLAYLIST}" | tail -n 1)
         ;;
 esac
 
