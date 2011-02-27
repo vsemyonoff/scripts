@@ -2,7 +2,7 @@
 
 #
 #  File: volume.sh
-#  Description:
+#  Description: require libaosd
 #
 #  Creation date: 2010.08.03 16:45:13
 #  Last modified: 2010.08.03 16:45:58

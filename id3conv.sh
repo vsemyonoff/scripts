@@ -2,9 +2,9 @@
 
 #
 #  File: id3conv.sh
-#  Description:
+#  Description: require mp3unicode
 #
-#  Version: id3conv.sh, 2010/10/07 14:40:36 EEST
+#  Version: id3conv.sh, 2011/02/27 19:25:23 EET
 #  Copyright © 2010 Vladyslav Semyonov <vsemyonoff@gmail.com>
 #
 

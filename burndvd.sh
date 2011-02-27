@@ -2,7 +2,7 @@
 
 #
 #  File: burndvd.sh
-#  Description:
+#  Description: require dvd+rw-tools
 #
 #  Creation date: 2011.02.16 17:01:53
 #  Last modified: 2011.02.16 17:12:18

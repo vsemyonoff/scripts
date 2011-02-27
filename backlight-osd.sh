@@ -2,7 +2,7 @@
 
 #
 #  File: backlight-osd.sh
-#  Description:
+#  Description: require libaosd
 #
 #  Creation date: 2010.08.03 17:41:53
 #  Last modified: 2010.08.03 18:29:33
