@@ -17,8 +17,17 @@ fi
 
 # Start winecfg or winetricks
 case "$1" in
-    winecfg)
+    bash)
         shift
+        exec ${BIN32} bash "${@}"
+        ;;
+
+    regedit)
+        shift
+        exec ${BIN32} regedit "${@}"
+        ;;
+
+    winecfg)
         exec ${BIN32} winecfg
         ;;
 
