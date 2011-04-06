@@ -5,7 +5,7 @@
 #  Description: require dvd+rw-tools
 #
 #  Creation date: 2011.02.16 17:01:53
-#  Last modified: 2011.02.16 17:12:18
+#  Last modified: 2011.04.03 10:56:12
 #
 #  Copyright © 2011 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
@@ -20,6 +20,6 @@ if [ ! -d "$1" ]; then
     exit 1
 fi
 
-exec growisofs -Z /dev/dvdrw -r -f -J "$1"
+exec growisofs -Z /dev/dvdrw -allow-limited-size -joliet-long -r -f -J "$1"
 
 # End of script
