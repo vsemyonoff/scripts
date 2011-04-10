@@ -14,7 +14,7 @@ case "$1" in
         ;;
 esac
 
-[ -z "${DISPLAY}" ] && FRAME="--tty" || FRAME="--create-frame"
+[ -z "${DISPLAY}" ] && NOFORK=1 && FRAME="--tty" || FRAME="--create-frame"
 [ -z "${NOFORK}" ] && FORKARGS=">/dev/null 2>&1 &"
 
-eval 'exec ${EMACS} ${FRAME} "$@" ${FORKARGS}'
+eval 'exec ${EMACS} ${FRAME} "$@"' ${FORKARGS}
