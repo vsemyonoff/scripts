@@ -8,6 +8,7 @@ CURRARCH=$(uname -m)
 PRGNAME="${0}"
 ROOTDIR="/opt/arch32"
 TARGETARCH="i686"
+TMPDIR=$(mktemp -d --tmpdir="/dev/shm" "mkarch-XXXXXXXXXX")
 
 usage() {
     cat << EOF
@@ -112,11 +113,6 @@ parse_args() {
                             ROOTDIR="${1}"
                             ROOTPAR=$(grep -m 1 " ${ROOTDIR} " /proc/mounts | cut -f 1 -d " ")
                         fi
-                        if [ ! -z "${ROOTPAR}" ]; then
-                            [ -z "${ROOTDIR}" ] && _TMP_="yes"
-                            ROOTNUM=$(echo "${ROOTPAR}" | grep -oE '[0-9]*')
-                            [ -z "${ROOTNUM}" ] && echo "Error: expected disk partition, not entry disk '${1}'" && usage && exit 1
-                        fi
                         ;;
                 esac
                 ;;
@@ -128,7 +124,10 @@ parse_args() {
     done
 
     if [ ! -z "${ROOTPAR}" ]; then
+        [ -z "${ROOTDIR}" ] && NEEDMOUNT="true" && ROOTDIR="${TMPDIR}/rootfs"
         ROOTDEV=$(echo ${ROOTPAR} | grep -oE '[^0-9]*')
+        ROOTNUM=$(echo "${ROOTPAR}" | grep -oE '[0-9]*')
+        [ -z "${ROOTNUM}" ] && echo "Error: expected disk partition, not entry disk '${1}'" && usage && exit 1
         GRUBROOT="(hd0,$((ROOTNUM-1)))"
         UUID=$(blkid -s UUID -o value ${ROOTPAR})
     fi
@@ -153,8 +152,7 @@ umount_pseudo_fs() {
 }
 
 mount_root_fs() {
-    [ ! -z "${ROOTDIR}" ] && mkdir -p "${ROOTDIR}"
-    [ ! -z "${_TMP_}" ] && ROOTDIR=$(mktemp -d) && mount "${ROOTPAR}" "${ROOTDIR}"
+    mkdir -p "${ROOTDIR}" && [ ! -z "${NEEDMOUNT}" ] && mount "${ROOTPAR}" "${ROOTDIR}"
 }
 
 umount_root_fs() {
@@ -166,22 +164,21 @@ pre_install() {
     mount_pseudo_fs
 
     # Prepare mirror list
+    MIRRORLIST="${TMPDIR}/pacman.d/mirrorlist"
+    mkdir -p $(dirname "${MIRRORLIST}")
     case "${TARGETARCH}" in
         i?86)
-            sed -e 's/x86_64/i686/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
+            sed -e 's/x86_64/i686/g' /etc/pacman.d/mirrorlist > "${MIRRORLIST}"
             ;;
         x86_64)
-            sed -e 's/i686/x86_64/g' /etc/pacman.d/mirrorlist > /tmp/mirrorlist
+            sed -e 's/i686/x86_64/g' /etc/pacman.d/mirrorlist > "${MIRRORLIST}"
             ;;
     esac
 
     # Prepare pacman.conf
-    sed -e 's@/etc/pacman.d/mirrorlist@/tmp/mirrorlist@g' /etc/pacman.conf > /tmp/pacman.conf
-}
-
-cleanup() {
-    rm -f /tmp/mirrorlist
-    rm -f /tmp/pacman.conf
+    PACMANCONF="${TMPDIR}/pacman.d/pacman.conf"
+    mkdir -p $(dirname "${PACMANCONF}")
+    sed -e 's@/etc/pacman.d/mirrorlist@${MIRRORLIST}@g' /etc/pacman.conf > "${PACMANCONF}"
 }
 
 post_install() {
