@@ -3,9 +3,10 @@
 IMAGESDIR="/mnt/share/images/kvmimages"
 IMAGENAME="$(basename ${0})"
 IMAGEFULL="${IMAGESDIR}/${IMAGENAME}.img"
-CPUMODEL="host" # use 'qemu[-kvm] -cpu ?' for details
-CPUCOUNT="1"
-NUMCORES="2"
+CPUMODEL="core2duo" # use 'qemu[-kvm] -cpu ?' for details
+CPUSCOUNT=1
+CORESCOUNT=2
+THREADSCOUNT=2
 RAMSIZE=2048
 VGAMODE="std"
 
@@ -32,18 +33,18 @@ DRIVE_C="-drive file=\"${IMAGEFULL}\",if=virtio,boot=on"
 for i in $(seq 1 3); do
     ARG=$(eval echo \${${i}})
     [ -z "${ARG}" ] && break
-    [ -d "${ARG}" ] && [ -z "${DRIVE_D}" ] && DRIVE_D="-hdd fat:\"${ARG}\""
     if [ -f "${ARG}" ]; then
-        [[ "${ARG}" =~ (.*)\.vfd$ ]] && [ -z "${FLOPPY}" ] && FLOPPY="-fda \"${ARG}\""
-        [[ "${ARG}" =~ (.*)\.iso$ ]] && [ -z "${CDROM}" ] && CDROM="-cdrom \"${ARG}\""
+        [[ "${ARG}" =~ (.*)\.vfd$ ]] && [ -z "${DRIVE_A}" ] && DRIVE_A="-fda \"${ARG}\""
+        [[ "${ARG}" =~ (.*)\.iso$ ]] && [ -z "${DRIVE_D}" ] && DRIVE_D="-cdrom \"${ARG}\""
     fi
+    [ -d "${ARG}" ] && [ -z "${DRIVE_E}" ] && DRIVE_E="-hdd fat:\"${ARG}\""
     unset ARG
 done
 
 # Full QEMU command
 QEMUCMD="qemu-kvm -full-screen -enable-kvm \
-    -cpu ${CPUMODEL} -smp ${CPUCOUNT},cores=${NUMCORES} \
-    ${FLOPPY} ${DRIVE_C} ${DRIVE_D} ${CDROM} -boot order=cda \
+    -cpu ${CPUMODEL} -smp ${CPUSCOUNT},cores=${CORESCOUNT},threads=${THREADSCOUNT} \
+    ${DRIVE_A} ${DRIVE_C} ${DRIVE_D} ${DRIVE_E} -boot order=cda \
     -net nic,model=virtio,vlan=1 \
     -net user,vlan=1 \
     -m ${RAMSIZE} -vga ${VGAMODE}"
@@ -54,4 +55,5 @@ XCOMPMGR_PID=$(pgrep -U ${UID} "xcompmgr")
 unset XCOMPMGR_PID
 
 # Exec QEMU
+echo ${QEMUCMD}
 exec $(eval echo "${QEMUCMD}")
