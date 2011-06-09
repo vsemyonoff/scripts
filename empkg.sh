@@ -10,6 +10,11 @@
 #  Copyright © 2011 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
+error_exit() {
+    echo "*** Error: processing package '$1', exiting..."
+    exit 1
+}
+
 download_package() {
     # ${1} - output file name
     # ${2} - package file URL
@@ -21,7 +26,11 @@ download_package() {
         echo "*** Warning: package '${1}' URL is empty, skipping..."
         return 1
     fi
-    wget -q -O "${1}" "${2}" || exit 1
+    wget -q -O "${1}" "${2}"
+    if [ $? -ne 0 ]; then
+        rm -f "${1}"
+        return 1
+    fi
 }
 
 git_packages() {
@@ -34,9 +43,9 @@ git_packages() {
             continue
         fi
         if [ -d "${name}" ]; then
-            ( cd "${name}" && git pull >/dev/null || exit 1 )
+            ( cd "${name}" && git pull >/dev/null || error_exit "${name}" )
         else
-            git clone "${url}" "${name}" >/dev/null || exit 1
+            git clone "${url}" "${name}" >/dev/null || error_exit "${name}"
         fi
     done
 }
@@ -47,12 +56,12 @@ tar_packages() {
         local url=$(eval echo \${${pkg}[1]})
         echo ">>> Processing package: '${name}'"
         [ -d "${name}" ] && rm -fr "${name}"
-        download_package "${name}.pkg" "${url}" || continue
+        download_package "${name}.pkg" "${url}" || error_exit "${name}"
         local untar_cmd="tar xf \"${name}.pkg\" -C \"${name}\""
         local topdir=$(tar tf "${name}.pkg" | head -1)
         [[ "${topdir}" =~ ^.*/$ ]] && untar_cmd="${untar_cmd} --strip-components=1"
         mkdir -p "${name}"
-        eval "${untar_cmd} >/dev/null" || exit 1
+        eval "${untar_cmd} >/dev/null" || error_exit "${name}"
         rm -f "${name}.pkg"
     done
 }
@@ -63,7 +72,7 @@ raw_packages() {
         local url=$(eval echo \${${pkg}[1]})
         echo ">>> Processing package: '${name}'"
         [ -f "${name}.el" ] && rm -f "${name}.el"
-        download_package "${name}.el" "${url}" || continue
+        download_package "${name}.el" "${url}" || error_exit "${name}"
     done
 }
 
