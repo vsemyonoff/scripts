@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 
+#============= Settings section ================================
+
 IMAGESDIR="/mnt/share/images/kvmimages"
 IMAGENAME="$(basename ${0})"
 IMAGEFULL="${IMAGESDIR}/${IMAGENAME}.img"
 CPUMODEL="core2duo" # use 'qemu[-kvm] -cpu ?' for details
+SNDMODEL="ac97"     # use 'qemu[-kvm] -soundhw ?' for details
 CPUSCOUNT=1
 CORESCOUNT=2
 THREADSCOUNT=2
 RAMSIZE=2048
 VGAMODE="std"
+
+#============= End of settings section =========================
 
 # Validate symlink name
 [ "${IMAGENAME}" == "kvmrun.sh" ] && echo "error: create image named symlink for this script to use it, exiting..." && exit 1
@@ -45,6 +50,7 @@ done
 QEMUCMD="qemu-kvm -full-screen -enable-kvm \
     -cpu ${CPUMODEL} -smp ${CPUSCOUNT},cores=${CORESCOUNT},threads=${THREADSCOUNT} \
     ${DRIVE_A} ${DRIVE_C} ${DRIVE_D} ${DRIVE_E} -boot order=cda \
+    -soundhw ${SNDMODEL} \
     -net nic,model=virtio,vlan=1 \
     -net user,vlan=1 \
     -m ${RAMSIZE} -vga ${VGAMODE}"
