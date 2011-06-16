@@ -37,7 +37,11 @@ case "$1" in
         ;;
 esac
 
+# Shutdown 'xcompmgr'
+XCOMPMGR_PID=$(pgrep -U ${UID} "xcompmgr")
+[ ! -z "${XCOMPMGR_PID}" ] && kill -9  ${XCOMPMGR_PID}
+unset XCOMPMGR_PID
+
 # Start application
-killall xcompmgr >/dev/null 2>&1
 cd "${WINEPREFIX}/drive_c/your-app.folder" &&
     exec ${BIN32} wine your-app.bin "${@}"

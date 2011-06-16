@@ -6,10 +6,10 @@ IMAGESDIR="/mnt/share/images/kvmimages"
 IMAGENAME="$(basename ${0})"
 IMAGEFULL="${IMAGESDIR}/${IMAGENAME}.img"
 CPUMODEL="core2duo" # use 'qemu[-kvm] -cpu ?' for details
-SNDMODEL="ac97"     # use 'qemu[-kvm] -soundhw ?' for details
+SNDMODEL="hda"      # use 'qemu[-kvm] -soundhw ?' for details
 CPUSCOUNT=1
-CORESCOUNT=2
-THREADSCOUNT=2
+CORESCOUNT=1
+THREADSCOUNT=1
 RAMSIZE=2048
 VGAMODE="std"
 
