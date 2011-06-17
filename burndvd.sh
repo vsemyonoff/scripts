@@ -20,6 +20,6 @@ if [ ! -d "$1" ]; then
     exit 1
 fi
 
-exec growisofs -Z /dev/dvdrw -allow-limited-size -joliet-long -r -f -J "$1"
+exec growisofs -dvd-compat -Z /dev/dvdrw -allow-limited-size -joliet-long -f -r -J "$1"
 
 # End of script
