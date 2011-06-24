@@ -20,7 +20,7 @@ case $1 in
 
     next) ncmpcpp next ;;
 
-    *) echo "Usage: $0 { play | stop | prev | next }"  && exit 1;;
+    *) ;; # Noop, just show info
 
 esac
 
