@@ -24,9 +24,25 @@ case $1 in
 
 esac
 
-STATUS="$(ncmpcpp --now-playing)"
-[ -z "${STATUS}" ] && STATUS="STOPPED"
-killall aosd_cat &> /dev/null
-echo "${STATUS}" | aosd_cat -n "Sans 20 bold" -o 0 -R yellow -f 0
+LEN="$(ncmpcpp --now-playing %l)"
+if [ -z "${LEN}" ]; then
+    STATUS="STOPPED"
+else
+    TITLE="$(ncmpcpp --now-playing %t)"
+    if [ -z "${TITLE}" ]; then
+        FILE="$(ncmpcpp --now-playing %f)"
+        STATUS="(${LEN})  ${FILE}"
+    else
+        ARTIST="$(ncmpcpp --now-playing %a)"
+        if [ -z "${ARTIST}" ]; then
+            STATUS="(${LEN})  ${TITLE}"
+        else
+            STATUS="(${LEN})  ${ARTIST} - ${TITLE}"
+        fi
+    fi
+fi
+
+killall -u "${USER}" aosd_cat &> /dev/null
+echo "${STATUS}" | aosd_cat -n "Sans 20 bold" -l 5 -o 0 -R yellow -f 0
 
 # End of script
