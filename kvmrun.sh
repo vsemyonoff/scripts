@@ -5,11 +5,11 @@
 IMAGESDIR="/mnt/share/images/kvmimages"
 IMAGENAME="$(basename ${0})"
 IMAGEFULL="${IMAGESDIR}/${IMAGENAME}.img"
-CPUMODEL="core2duo" # use 'qemu[-kvm] -cpu ?' for details
 SNDMODEL="hda"      # use 'qemu[-kvm] -soundhw ?' for details
-CPUSCOUNT=1
-CORESCOUNT=1
-THREADSCOUNT=1
+#CPUMODEL="core2duo" # use 'qemu[-kvm] -cpu ?' for details
+#CPUSCOUNT=1
+#CORESCOUNT=2
+#THREADSCOUNT=1
 RAMSIZE=2048
 VGAMODE="std"
 
@@ -46,9 +46,20 @@ for i in $(seq 1 3); do
     unset ARG
 done
 
+# CPU
+[ ! -z "${CPUMODEL}" ] && CPU="-cpu ${CPUMODEL}"
+if [ ! -z "${CPUSCOUNT}" ]; then
+    CPU="${CPU} -smp ${CPUSCOUNT}"
+    if [ ! -z "${CORESCOUNT}" ]; then
+        CPU="${CPU},cores=${CORESCOUNT}"
+        if [ ! -z "${THREADSCOUNT}" ]; then
+            CPU="${CPU},threads=${THREADSCOUNT}"
+        fi
+    fi
+fi
+
 # Full QEMU command
-QEMUCMD="qemu-kvm -full-screen -enable-kvm \
-    -cpu ${CPUMODEL} -smp ${CPUSCOUNT},cores=${CORESCOUNT},threads=${THREADSCOUNT} \
+QEMUCMD="qemu-kvm -full-screen -enable-kvm ${CPU}\
     ${DRIVE_A} ${DRIVE_C} ${DRIVE_D} ${DRIVE_E} -boot order=cda \
     -soundhw ${SNDMODEL} \
     -net nic,model=virtio,vlan=1 \
