@@ -11,17 +11,11 @@
 #
 
 case $1 in
-
     play) ncmpcpp toggle ;;
-
     stop) ncmpcpp stop ;;
-
     prev) ncmpcpp prev ;;
-
     next) ncmpcpp next ;;
-
     *) ;; # Noop, just show info
-
 esac
 
 LEN="$(ncmpcpp --now-playing %l)"
@@ -42,7 +36,6 @@ else
     fi
 fi
 
-killall -u "${USER}" aosd_cat &> /dev/null
-echo "${STATUS}" | aosd_cat -n "Sans 20 bold" -l 5 -o 0 -R yellow -f 0
+exec echo-osd "${STATUS}"
 
 # End of script

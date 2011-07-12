@@ -10,23 +10,27 @@
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
-CONTROL="/sys/class/backlight/acpi_video0/brightness"
-MAXIMUM=`cat /sys/class/backlight/acpi_video0/max_brightness`
-CURRENT=`cat $CONTROL`
+BLPATH="/sys/class/backlight/sony"
+CONTROL="${BLPATH}/brightness"
+MAXIMUM=$(cat "${BLPATH}/max_brightness")
+CURRENT=$(cat "${CONTROL}")
 
 case $1 in
-
-   raise) [ $CURRENT -lt $MAXIMUM ] && NEWVALUE=$((CURRENT + 1)) || NEWVALUE=$CURRENT ;;
-
-   lower) [ $CURRENT -gt 1 ] && NEWVALUE=$((CURRENT - 1)) || NEWVALUE=1 ;;
-
-   *) echo "Usage: $0 { raise | lower }"  && exit 1;;
-
+   raise)
+       NEWVALUE=$((CURRENT + 10))
+       [ ${NEWVALUE} -gt ${MAXIMUM} ] && NEWVALUE=${MAXIMUM}
+       ;;
+   lower)
+       NEWVALUE=$((CURRENT - 10))
+       [ ${NEWVALUE} -lt 1 ] && NEWVALUE=1
+       ;;
+   *) echo "Usage: ${0} { raise | lower }"  && exit 1;;
 esac
-sudo bash -c "echo $NEWVALUE > $CONTROL"
+sudo bash -c "echo ${NEWVALUE} > ${CONTROL}"
 
-killall aosd_cat &> /dev/null
+PERC=$(( ${NEWVALUE} / (${MAXIMUM} / 100) ))
+[ ${PERC} -gt 100 ] && PERC=100
 
-echo -n "LCD Brightness: $((100 / MAXIMUM * NEWVALUE + 4))%" | aosd_cat -n "Sans 20 bold" -o 0 -R yellow -f 0
+exec echo-osd "LCD Brightness: ${PERC}%"
 
 # End of script

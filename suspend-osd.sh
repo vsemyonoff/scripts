@@ -10,7 +10,6 @@
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
-OSDCOLOR=red
-echo "Suspend: not implemented" | aosd_cat -n "Sans 20 bold" -o 0 -R $OSDCOLOR -f 0
+exec echo-osd -e "Suspend: not implemented"
 
 # End of script
