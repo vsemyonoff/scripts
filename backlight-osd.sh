@@ -17,19 +17,18 @@ CURRENT=$(cat "${CONTROL}")
 
 case $1 in
    raise)
-       NEWVALUE=$((CURRENT + 10))
+       NEWVALUE=$(( CURRENT + 1 ))
        [ ${NEWVALUE} -gt ${MAXIMUM} ] && NEWVALUE=${MAXIMUM}
        ;;
    lower)
-       NEWVALUE=$((CURRENT - 10))
-       [ ${NEWVALUE} -lt 1 ] && NEWVALUE=1
+       NEWVALUE=$(( CURRENT - 1 ))
+       [ ${NEWVALUE} -lt 0 ] && NEWVALUE=0
        ;;
    *) echo "Usage: ${0} { raise | lower }"  && exit 1;;
 esac
 sudo bash -c "echo ${NEWVALUE} > ${CONTROL}"
 
-PERC=$(( ${NEWVALUE} / (${MAXIMUM} / 100) ))
-[ ${PERC} -gt 100 ] && PERC=100
+PERC=$(( ${NEWVALUE} * 100 / ${MAXIMUM} ))
 
 exec echo-osd "LCD Brightness: ${PERC}%"
 
