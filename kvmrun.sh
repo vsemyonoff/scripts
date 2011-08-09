@@ -23,7 +23,7 @@ mkdir -p "${IMAGESDIR}" || exit 1
 
 # Validate virtual image existance
 if [ ! -r "${IMAGEFULL}" ]; then
-    if [ ! -z "${1}" ]; then
+    if [ -n "${1}" ]; then
         echo -n "Enter virtual image size (gigabytes, default: 5): " && read IMAGESIZE
         qemu-img create -f qcow2 "${IMAGEFULL}" ${IMAGESIZE:-5}G || exit 1
     else
@@ -47,12 +47,12 @@ for i in $(seq 1 3); do
 done
 
 # CPU
-[ ! -z "${CPUMODEL}" ] && CPU="-cpu ${CPUMODEL}"
-if [ ! -z "${CPUSCOUNT}" ]; then
+[ -n "${CPUMODEL}" ] && CPU="-cpu ${CPUMODEL}"
+if [ -n "${CPUSCOUNT}" ]; then
     CPU="${CPU} -smp ${CPUSCOUNT}"
-    if [ ! -z "${CORESCOUNT}" ]; then
+    if [ -n "${CORESCOUNT}" ]; then
         CPU="${CPU},cores=${CORESCOUNT}"
-        if [ ! -z "${THREADSCOUNT}" ]; then
+        if [ -n "${THREADSCOUNT}" ]; then
             CPU="${CPU},threads=${THREADSCOUNT}"
         fi
     fi
@@ -64,11 +64,12 @@ QEMUCMD="qemu-kvm -full-screen -enable-kvm ${CPU}\
     -soundhw ${SNDMODEL} \
     -net nic,model=virtio,vlan=1 \
     -net user,vlan=1 \
+    -usbdevice tablet \
     -m ${RAMSIZE} -vga ${VGAMODE}"
 
 # Shutdown 'xcompmgr'
 XCOMPMGR_PID=$(pgrep -U ${UID} "xcompmgr")
-[ ! -z "${XCOMPMGR_PID}" ] && kill -9  ${XCOMPMGR_PID}
+[ -n "${XCOMPMGR_PID}" ] && kill -9  ${XCOMPMGR_PID}
 unset XCOMPMGR_PID
 
 # Exec QEMU

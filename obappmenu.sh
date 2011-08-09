@@ -8,7 +8,7 @@ _HEADER
 }
 
 applications() {
-    openbox-xdgmenu /etc/xdg/menus/gnome-applications.menu 2>/dev/null | sed -e 's/<\/\?openbox_pipe_menu>//g' \
+    openbox-xdgmenu /etc/xdg/menus/applications.menu 2>/dev/null | sed -e 's/<\/\?openbox_pipe_menu>//g' \
         | sed -e 's/\(<menu id=".*" \(label=".*"\)>\)$/\1 <separator \2 \/>/g' | sed -e 's/xterm/urxvtc/g'
 }
 
