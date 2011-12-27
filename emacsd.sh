@@ -15,9 +15,9 @@ start() {
 
 stop() {
     ebegin "Stopping Emacs daemon instances"
-    exec find /tmp -maxdepth 1 -type d -name 'emacs*' -exec find {} -type s -name server \; | \
+    find /tmp -maxdepth 1 -type d -name 'emacs*' -exec find {} -type s -name server \; | \
         perl -ne 's/[^\d]//g; print scalar getpwuid($_), "\n"' | \
-        xargs -n 1 su -c /mnt/share/scripts/killemacs.sh -
+            xargs -n 1 su -c /mnt/share/scripts/killemacs.sh -
     eend ${?}
 }
 
