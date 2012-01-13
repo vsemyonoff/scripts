@@ -10,18 +10,18 @@
 #  Copyright © 2010 Vladyslav Semyonoff <vsemyonoff@gmail.com>
 #
 
-BLPATH="/sys/class/backlight/sony"
+BLPATH="/sys/class/backlight/acpi_video0"
 CONTROL="${BLPATH}/brightness"
 MAXIMUM=$(cat "${BLPATH}/max_brightness")
 CURRENT=$(cat "${CONTROL}")
 
 case $1 in
    raise)
-       NEWVALUE=$(( CURRENT + 1 ))
+       NEWVALUE=$(( CURRENT + 16500 ))
        [ ${NEWVALUE} -gt ${MAXIMUM} ] && NEWVALUE=${MAXIMUM}
        ;;
    lower)
-       NEWVALUE=$(( CURRENT - 1 ))
+       NEWVALUE=$(( CURRENT - 16500 ))
        [ ${NEWVALUE} -lt 0 ] && NEWVALUE=0
        ;;
    *) echo "Usage: ${0} { raise | lower }"  && exit 1;;
