@@ -35,14 +35,13 @@ rm -fr fixgpu.c
 
 cat > /etc/pm/sleep.d/10-fixgpu << EOF
 #!/bin/sh
-#
-# reset the IGD
+
 case "\${1}" in
     hibernate|suspend)
-            ;;
+        ;;
     resume|thaw)
         /usr/local/sbin/fixgpu
-            ;;
+        ;;
 esac
 EOF
 
