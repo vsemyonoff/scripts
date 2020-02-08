@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+ffprobe="ffprobe -loglevel error -print_format json -show_format -show_chapters -i"
+
+while [[ ${#} -gt 0 ]]; do
+    # Get meta info
+    json=$(ffprobe -i "${1}" -loglevel error -print_format json -show_format -show_chapters)
+    title=$(echo "${json}" | jq -r ".format.tags.title")
+
+    # Prepare output dir
+    rm -fr "${title}" && mkdir "${title}"
+    # Get cover
+    ffmpeg -i "${1}" -vframes 1 -f image2 "${title}/cover.jpg" >/dev/null 2>&1
+
+    # Cycle through chapters
+    count=$(echo "${json}" | jq ".chapters | length")
+    echo "$count : $index"
+    for i in $(seq 1 ${count}); do
+        index=$((i-1))
+        start=$(echo "${json}" | jq -r ".chapters[${index}].start_time")
+        end=$(echo "${json}" | jq -r ".chapters[${index}].end_time")
+        chapter=$(echo "${json}" | jq -r ".chapters[${index}].tags.title")
+        ffmpeg -i "${1}" -vn -acodec copy -ss ${start} -to ${end} -metadata title="${title} ${chapter}" "${title}/$(printf "%03d" ${i}). ${chapter}.m4a"
+    done
+
+    shift
+done

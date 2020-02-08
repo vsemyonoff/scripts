@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+[ $# -lt 1 ] && echo "usage: $0 [username@]server_name_or_ip:/path_on_server [mount_point [port]]" && exit 1
+
+# Connection string parsing
+SHSERVER="$(echo ${1} | cut -f 1 -d ':')"
+SHUSER="$(echo ${SHSERVER} | cut -f 1 -d '@')"
+SHPATH="$(echo ${1} | cut -f 2 -d ':')"
+if [ -n "${SHUSER}" ]; then
+    SHSERVER="$(echo ${SHSERVER} | cut -f 2 -d '@')"
+else
+    SHUSER="${USER}"
+fi
+[ -z "${SHPATH}" ] && SHPATH="/"
+
+# Mount point settings
+MNTROOT="${2:-${HOME}/Desktop/SshFS}"
+PORT="${3:-8022}"
+MNT="${MNTROOT}/${SHSERVER}:${PORT}"
+
+ARGS="port=${PORT},compression=yes,reconnect,transform_symlinks"
+
+mkdir -p "${MNT}" && sshfs -o "${ARGS}" "${1}" "${MNT}"

@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+
+# Qemu VMs and runtime location
+IMAGESDIR="${QEMU_IMAGES_DIR:-${XDG_HOME:-${HOME}/.local}/var/lib/qemu}"
+
+# If not symlink just show VMs status and exit
+if [[ ! -L "${0}" ]]; then
+    printf "%-50s %-10s %s\n" "Name" "PID" "Ports"
+    for vm in $(find "${IMAGESDIR}" -type d -maxdepth 1 -exec basename {} \; 2>/dev/null | tail -n +2 | sort); do
+        vmpid=$(pgrep --uid ${USER} --full "^qemu.*name\s${vm}\s")
+        vmconf="${IMAGESDIR}/${vm}/qemu.cfg"
+        [[ -r "${vmconf}" ]] && source "${vmconf}"
+        printf "%-50s %-10s %s\n" "${vm}" "${vmpid:--}" "${PORTFWD:--}"
+        unset PORTFWD
+    done
+    exit
+fi
+
+# VM info
+VMNAME="$(basename ${0})"
+VMHOME="${IMAGESDIR}/${VMNAME}"
+VMVARS="${VMHOME}/efivars.bin"
+VMCONF="${VMHOME}/qemu.cfg"
+VMLOG="${VMHOME}/qemu.log"
+VMSOCK="${XDG_RUNTIME_DIR:-/run/user/${UID}}/${VMNAME}.sock" # Spice unix socket file name
+
+#============= Settings section ================================
+# EFI images, unset to boot in compatibility mode
+EFIBIOS="/usr/share/ovmf/x64/OVMF_CODE.fd"
+EFIVARS="/usr/share/ovmf/x64/OVMF_VARS.fd"
+# VM root fs image, can be empty if BASEIMG is set, in such case all fs changes will
+# be lost after VM power down (see qemu -snapshot option). In combination with BASEIMG
+# will contain only changes to BASEIMG and leave BASEIMG unmodified.
+ROOTIMG="${VMHOME}/rootfs.qcow2"
+# Other settings
+MACHINE=""      # defqult: 'q35', see qemu -machine help
+CPU=""          # default: 'host', see qemu -cpu help
+SOCKETS=        # default: 1, processors count
+CORES=          # default: not set, per socket
+THREADS=        # default: not set, per core
+RAMSIZE=        # default: 1024, MBytes
+AUDIODRV=""     # default: 'alsa', use 'pa' for PulseAudio
+SOUNDHW=""      # default: 'hda', see qemu -soundhw help
+BASEIMG=""      # default: not set, base qcow2 image, relative to ${IMAGESDIR}
+HEADLESS=       # default: not set, any value will disable Spice connection on startup
+SHAREDDIR=""    # default: ${HOME}/Public, shared folder path
+PORTFWD=""      # default: not set, port forwarding in form 'hport1:gport1 hport2:gport2 ...'
+#============= End of settings section =========================
+
+# Read VM settings
+[[ -r "${VMCONF}" ]] && source "${VMCONF}"
+
+# Validate base image (if set)
+BASEIMG="${BASEIMG:+${IMAGESDIR}/${BASEIMG}}"
+if [[ "${BASEIMG}" && ! -r "${BASEIMG}" ]]; then
+    echo "error: invalid base image path, exiting..." && exit 1
+fi
+
+# Fix 'HEADLESS' value to handle virgl Spice option
+HEADLESS="${HEADLESS:+off}"
+
+# Host/guest audio driver
+if [[ ! "${HEADLESS}" ]]; then
+    export QEMU_AUDIO_DRV="${AUDIODRV:-alsa}"
+    SOUND="-soundhw ${SOUNDHW:-hda}"
+fi
+unset AUDIORDV
+
+# Port forwarding
+for pair in ${PORTFWD}; do
+    hport=$(echo ${pair} | awk -F: '{ print $1}')
+    gport=$(echo ${pair} | awk -F: '{ print $2}')
+    HOSTFWD="${HOSTFWD},hostfwd=tcp::${hport}-:${gport}"
+done
+unset PORTFWD
+
+# Spice connection
+function spice_connect() {
+    if [[ $(pgrep --uid ${USER} --full "^qemu.*name\s${VMNAME}\s") ]]; then
+        # Connect to already started VM
+        exec spicy --title="${VMNAME}" \
+             --spice-shared-dir="${SHAREDDIR:-${HOME}/Public}" \
+             --uri="spice+unix://${VMSOCK}"
+    fi
+}
+spice_connect
+
+# Extra drives (qemu "img", premounted folder, cdrom "iso", floppy "v?fd")
+while [[ "${1}" ]]; do
+    if [[ -f "${1}" ]]; then
+        if [[ "${1}" =~ (.*)\.img$ ]]; then
+            DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=virtio,media=disk,file=${1}"
+        elif [[ "${1}" =~ (.*)\.iso$ ]]; then
+            DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=ide,media=cdrom,readonly,file=${1}"
+        elif [[ "${1}" =~ (.*)\.v?fd$ ]]; then
+            DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=floppy,file=${1}"
+        fi
+    elif [[ -d "${1}" ]]; then
+        DRIVE_EXTRA="${DRIVE_EXTRA} -drive file=fat:rw:${1}"
+    else
+        ARGS_EXTRA="${ARGS_EXTRA} ${1}"
+    fi
+    shift
+done
+
+# To be sure that images dir exists
+mkdir -p "${VMHOME}" || exit 1
+
+# Validate virtual image existance
+if [[ "${ROOTIMG}" && ! -r "${ROOTIMG}" ]]; then
+    if [[ "${BASEIMG}" ]]; then
+        qemu-img create -f qcow2 -b "${BASEIMG}" "${ROOTIMG}" || exit 1
+    elif [[ "${DRIVE_EXTRA}" ]]; then
+        echo -n "Enter virtual image size (gigabytes, default: 32G): " && read ROOTSIZE
+        qemu-img create -f qcow2 "${ROOTIMG}" ${ROOTSIZE:-32}G || exit 1
+    else
+        echo "error: image '${ROOTIMG}' not exists and bootable media not specified"
+        echo "error: use '${VMNAME} image.iso' or set 'BASEIMG' in '${VMCONF}', exiting..."
+        exit 1
+    fi
+fi
+
+# EFI bios and vars storage
+if [[ "${EFIBIOS}" && -r "${EFIBIOS}" ]]; then
+    DRIVE_EFI="-drive if=pflash,format=raw,readonly,file=${EFIBIOS}"
+    if [[ ! -r "${VMVARS}" && -r "${EFIVARS}" ]]; then
+        cp "${EFIVARS}" "${VMVARS}"
+    fi
+    DRIVE_EFI="${DRIVE_EFI} -drive if=pflash,format=raw,file=${VMVARS}"
+else
+    echo "warning: can't find '${EFIBIOS}' image, booting in BIOS mode"
+fi
+
+# Main image
+DRIVE_MAIN="-drive if=virtio,media=disk,index=0,file"
+if [[ ! "${ROOTIMG}" && "${BASEIMG}" ]]; then
+    DRIVE_MAIN="${DRIVE_MAIN}=${BASEIMG},snapshot=on"
+elif [[ "${ROOTIMG}" ]]; then
+    DRIVE_MAIN="${DRIVE_MAIN}=${ROOTIMG}"
+else
+    echo "error: root image not set, exiting..." && exit 1
+fi
+
+# SMP
+SMP="sockets=${SOCKETS:-1}"
+[[ "${CORES}" ]] && SMP="${SMP},cores=${CORES}"
+[[ "${THREADS}" ]] && SMP="${SMP},threads=${THREADS}"
+
+# Full QEMU command
+QEMUCMD="qemu-system-x86_64 -name ${VMNAME} -nodefaults \
+-machine type=${MACHINE:-q35},accel=kvm -device intel-iommu \
+-cpu ${CPU:-host} -smp ${SMP} -m size=${RAMSIZE:-1024} \
+-object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-pci,rng=rng0 \
+-device virtio-vga,virgl=${HEADLESS:-on} \
+-spice unix,addr=${VMSOCK},disable-ticketing,image-compression=off,gl=${HEADLESS:-on} \
+-device qemu-xhci -device usb-kbd -device usb-tablet \
+-nic user,model=virtio-net-pci${HOSTFWD} \
+-boot order=cda,once=dca ${DRIVE_EFI} ${DRIVE_MAIN} ${DRIVE_EXTRA} \
+-device virtio-serial \
+-chardev spicevmc,id=vdagent,debug=0,name=vdagent \
+-device virtserialport,chardev=vdagent,name=com.redhat.spice.0 \
+-chardev spiceport,id=webdav,name=webdav \
+-device virtserialport,chardev=webdav,name=org.spice-space.webdav.0 \
+-chardev socket,id=chrtpm,path=${XDG_RUNTIME_DIR}/tpm2.sock \
+-tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
+${SOUND} -daemonize -D ${VMLOG} ${ARGS_EXTRA}"
+
+# Debug
+echo "${QEMUCMD}" | tee "${VMLOG}"
+
+# Start VM
+${QEMUCMD}
+
+# Connect to VM
+[[ ! "${HEADLESS}" ]] && spice_connect

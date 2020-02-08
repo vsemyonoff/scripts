@@ -8,7 +8,6 @@
 #  Copyright © 2010 Vladyslav Semyonov <vsemyonoff@gmail.com>
 #
 
-emacsclient --eval "(progn (save-some-buffers t) (setq kill-emacs-hook 'nil) (kill-emacs))" &>/dev/null && \
-    rm -rf "/tmp/emacs`id -u`"
+emacsclient --eval "(progn (save-some-buffers t) (setq kill-emacs-hook 'nil) (kill-emacs))" &>/dev/null
 
 # End of killemacs.sh

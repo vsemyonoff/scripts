@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+comm -23 <(pacman -Qqe | sort) <(pacman -Qqem | sort) | sudo tee /boot/backup/packages.list
+pacman -Qqem | sudo tee /boot/backup/aur-packages.list
+systemctl list-unit-files --no-legend --state=enabled | cut -f 1 -d ' ' | sudo tee /boot/backup/services.list
+systemctl --user list-unit-files --no-legend --state=enabled | grep -v socket | cut -f 1 -d ' ' | sudo tee /boot/backup/services_user.list

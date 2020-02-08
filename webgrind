@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+exec php -S 0.0.0.0:8080 /usr/share/webapps/webgrind/index.php

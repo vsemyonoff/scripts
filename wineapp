@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+APP_PATH=""
+EXE_FILE=""
+
+# Set wine version and prefix
+WINEARCH="win${APP_ARCH:-32}"
+WINEPREFIX=$(dirname $(readlink -m ${0}))
+export WINEARCH WINEPREFIX
+
+# Setup and update prefix folder
+[ ! -d "${WINEPREFIX}/drive_c" ] && winecfg && "setup_dxvk${APP_ARCH:-32}"
+[ ! -f "${WINEPREFIX}/.update-timestamp" ] && wineboot
+
+# Start installer/winecfg/winetricks
+if [ -n "${1}" ]; then
+    case "$1" in
+        bash)
+            shift
+            exec bash "${@}"
+            ;;
+        regedit)
+            shift
+            exec regedit "${@}"
+            ;;
+        winecfg)
+            shift
+            exec winecfg "${@}"
+            ;;
+        winetricks)
+            shift
+            exec winetricks "${@}"
+            ;;
+        *)
+            exec wine "${@}"
+            ;;
+    esac
+fi
+
+# Start application if specified
+if [ -n "${EXE_FILE}" ]; then
+    cd "${WINEPREFIX}/drive_c/${APP_PATH}" &&
+        exec wine "${EXE_FILE}" "${@}"
+fi

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+TPM_DIR="${XDG_CACHE_HOME}/tpm2.0"
+
+mkdir -p "${TPM_DIR}"
+/usr/bin/swtpm_setup --config "${XDG_CONFIG_HOME}/swtpm/setup.conf" --tpm2 \
+    --tpmstate "${TPM_DIR}" --create-ek-cert --create-platform-cert --lock-nvram

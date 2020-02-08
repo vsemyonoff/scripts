@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+shnsplit -f "$1.cue" -t "%n - %t" -o flac "$1.ape"
+#cuetag.sh "$1.cue" 0*.flac

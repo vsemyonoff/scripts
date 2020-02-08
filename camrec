@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if [ ${#} -ne 1 ]; then
+    echo "usage: ${0} output"
+    exit 1
+fi
+
+ffmpeg -y -f alsa -ac 1 -ar 44100 -i default -f v4l2 -r 60 -video_size 1280x720 -i /dev/video0 "${1}"

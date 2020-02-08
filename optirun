@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+function on_exit() {
+    sudo /usr/local/bin/disablegpu
+}
+trap on_exit EXIT
+
+sudo /usr/local/bin/enablegpu
+/usr/bin/optirun "${@}"
