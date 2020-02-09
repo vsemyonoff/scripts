@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#
+# Requirements: 'cdrtools' package
+# Arch users: sudo pacman -S cdrtools
+#
+
+THIS="$(basename ${0})"
+SEEDDIR="${1:-seed}"
+KEYFILE="${2:-${HOME}/.ssh/id_rsa.pub}"
+
+function usage() {
+    echo "usage: ${THIS} [seed [key.pub]]"
+    echo "  - seed   : seed directory (default: ${SEEDDIR})"
+    echo "  - key.pub: ssh public key (default: ${KEYFILE})"
+}
+
+[[ ! -d "${SEEDDIR}" ]] && usage && exit 1
+[[ ! -r "${KEYFILE}" ]] && usage && exit 1
+
+sed "s|@SSH_KEY@|$(cat ${KEYFILE})|" << EOF > "${SEEDDIR}/user-data"
+#cloud-config
+users:
+  - name: admin
+    gecos: Administrator
+    groups: [adm, systemd-journal, wheel]
+    lock_passwd: false
+    plain_text_passwd: admin
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - @SSH_KEY@
+
+write_files:
+  - path: /etc/cloud/cloud.cfg.d/80_disable_network_after_firstboot.cfg
+    content: |
+      # Disable network configuration after first boot
+      network:
+        config: disabled
+
+repo_update: true
+repo_upgrade: all
+
+runcmd:
+  - sudo mount /dev/vdb /mnt
+  - sudo /mnt/vmsetup
+  - sudo umount /mnt
+
+output : { all : '| tee -a /var/log/vmsetup.log' }
+EOF
+
+/usr/bin/mkisofs -follow-links -output seed.iso -volid cidata -joliet -rock "${SEEDDIR}"
