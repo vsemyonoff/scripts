@@ -172,4 +172,4 @@ echo "${QEMUCMD}" | tee "${VMLOG}"
 ${QEMUCMD}
 
 # Connect to VM
-[[ ! "${HEADLESS}" ]] && spice_connect
+[[ ! "${HEADLESS}" ]] && spice_connect || /bin/true
