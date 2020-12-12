@@ -1,44 +1,50 @@
 #!/usr/bin/env bash
 
-APP_PATH=""
-EXE_FILE=""
+# Detect wine prefix
+WINEPREFIX="$(dirname $(realpath --no-symlinks ${0}))"
 
-# Set wine version and prefix
-WINEARCH="win${APP_ARCH:-32}"
-WINEPREFIX=$(dirname $(readlink -m ${0}))
+# Load config if any
+CONFIG="${APPCONF:-${WINEPREFIX}/wine.cfg}"
+[[ -r "${CONFIG}" ]] && source "${CONFIG}"
+
+# Set wine version
+WINEARCH="win${APPARCH:-32}"
 export WINEARCH WINEPREFIX
 
-# Setup and update prefix folder
-[ ! -d "${WINEPREFIX}/drive_c" ] && winecfg && "setup_dxvk${APP_ARCH:-32}"
-[ ! -f "${WINEPREFIX}/.update-timestamp" ] && wineboot
+( cd "${WINEPREFIX}"
 
-# Start installer/winecfg/winetricks
-if [ -n "${1}" ]; then
-    case "$1" in
-        bash)
-            shift
-            exec bash "${@}"
-            ;;
-        regedit)
-            shift
-            exec regedit "${@}"
-            ;;
-        winecfg)
-            shift
-            exec winecfg "${@}"
-            ;;
-        winetricks)
-            shift
-            exec winetricks "${@}"
-            ;;
-        *)
-            exec wine "${@}"
-            ;;
-    esac
-fi
+  # Setup and update prefix folder
+  [[ ! -d "drive_c" ]] && winecfg && setup_dxvk install
+  [[ ! -f ".update-timestamp" ]] && wineboot && setup_dxvk install
 
-# Start application if specified
-if [ -n "${EXE_FILE}" ]; then
-    cd "${WINEPREFIX}/drive_c/${APP_PATH}" &&
-        exec wine "${EXE_FILE}" "${@}"
-fi
+  # Start installer/winecfg/winetricks
+  if [ -n "${1}" ]; then
+      case "$1" in
+          bash)
+              shift
+              exec bash "${@}"
+              ;;
+          regedit)
+              shift
+              exec regedit "${@}"
+              ;;
+          winecfg)
+              shift
+              exec winecfg "${@}"
+              ;;
+          winetricks)
+              shift
+              exec winetricks "${@}"
+              ;;
+          *)
+              exec wine "${@}"
+              ;;
+      esac
+  fi
+
+  [[ -z "${EXE_FILE}" ]] && echo "error: executable not specified, exiting..." && exit 1
+
+  # Start application if specified
+  cd "drive_c/${APP_PATH}" &&
+      exec wine "${EXE_FILE}" "${EXE_OPTS}" "${@}"
+)

@@ -5,4 +5,7 @@ IFS=$'\n'
 fpath="${1/%\/}"
 dpath="$(dirname "${fpath}")"
 
-exec feh --auto-rotate --borderless --draw-filename --draw-tinted --hide-pointer --image-bg=black --scale-down --start-at "${fpath}" "${dpath}" >/dev/null
+exec feh --auto-rotate --borderless  \
+     --draw-filename --draw-tinted   \
+     --hide-pointer --image-bg=black \
+     --scale-down --start-at "${fpath}" "${dpath}" >/dev/null
