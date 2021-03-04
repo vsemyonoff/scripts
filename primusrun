@@ -6,4 +6,4 @@ function on_exit() {
 trap on_exit EXIT
 
 sudo /usr/local/bin/enablegpu
-/usr/bin/primusrun "${@}"
+ENABLE_PRIMUS_LAYER=1 /usr/bin/primusrun "${@}"
