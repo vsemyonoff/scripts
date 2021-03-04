@@ -1,28 +1,59 @@
 #!/usr/bin/env bash
 
+###
+# Example '${WINEPREFIX}/wine.cfg' file
+###
+#APP_ARCH=
+#APP_PATH="Games/Program"
+#EXE_FILE="Program.exe"
+#EXE_OPTS=
+
+CWD="$(pwd)"
+
 # Detect wine prefix
-WINEPREFIX="$(dirname $(realpath --no-symlinks ${0}))"
+WINEPREFIX="$(dirname $(realpath ${0}))"
 
 # Load config if any
-CONFIG="${APPCONF:-${WINEPREFIX}/wine.cfg}"
+CONFIG="${APP_CONF:-${WINEPREFIX}/wine.cfg}"
 [[ -r "${CONFIG}" ]] && source "${CONFIG}"
 
 # Set wine version
-WINEARCH="win${APPARCH:-32}"
+WINEARCH="win${APP_ARCH:-32}"
 export WINEARCH WINEPREFIX
 
 ( cd "${WINEPREFIX}"
+  # Init 'drive_c'
+  if [[ ! -d "drive_c" ]]; then
+      rm -fr "dosdevices" ".dxvk-installed" ".update-timestamp" *.reg
+      wineboot --init && wineboot --end-session
+      while [[ ! -f "system.reg" ]]; do sleep 0.1; done
+  fi
 
-  # Setup and update prefix folder
-  [[ ! -d "drive_c" ]] && winecfg && setup_dxvk install
-  [[ ! -f ".update-timestamp" ]] && wineboot && setup_dxvk install
+  # Update prefix folder, remove 'dxvk'
+  if [[ ! -f ".update-timestamp" ]]; then
+      wineboot --update && wineboot --end-session
+      while [[ ! -f "system.reg" ]]; do sleep 0.1; done
+      # while read i; do if [[ "${i}" = "system.reg" ]]; then break; fi; done \
+      #     < <(inotifywait -e create,open,moved_to --format '%f' --quiet . --monitor)
+      [[ -f ".dxvk-installed" ]] && setup_dxvk uninstall --symlink && rm -f ".dxvk-installed"
+  fi
+
+  # Install 'dxvk'
+  if [[ ! -f ".dxvk-installed" ]]; then
+      setup_dxvk install --symlink && touch ".dxvk-installed" || exit 1
+      date +%s > ".dxvk-installed"
+  fi
 
   # Start installer/winecfg/winetricks
   if [ -n "${1}" ]; then
-      case "$1" in
+      case "${1}" in
           bash)
               shift
               exec bash "${@}"
+              ;;
+          control)
+              shift
+              exec wine control "${@}"
               ;;
           regedit)
               shift
@@ -37,7 +68,7 @@ export WINEARCH WINEPREFIX
               exec winetricks "${@}"
               ;;
           *)
-              exec wine "${@}"
+              cd "${CWD}" && exec wine "${@}"
               ;;
       esac
   fi
