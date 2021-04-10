@@ -62,7 +62,7 @@ HEADLESS="${HEADLESS:+off}"
 # Host/guest audio driver
 if [[ ! "${HEADLESS}" ]]; then
     export QEMU_AUDIO_DRV="${AUDIODRV:-alsa}"
-    SOUND="-soundhw ${SOUNDHW:-hda}"
+    SOUND="${SOUNDHW:--device intel-hda -device hda-duplex}"
 fi
 unset AUDIORDV
 
