@@ -132,7 +132,8 @@ else
 fi
 
 # Main image
-DRIVE_MAIN="-drive if=virtio,media=disk,index=0,file"
+DRIVE_MAIN="-drive format=raw,if=none,media=disk,id=drive-hd1,readonly=off,file"
+#DRIVE_MAIN="-drive if=virtio,media=disk,index=0,file"
 if [[ ! "${ROOTIMG}" && "${BASEIMG}" ]]; then
     DRIVE_MAIN="${DRIVE_MAIN}=${BASEIMG},snapshot=on"
 elif [[ "${ROOTIMG}" ]]; then
@@ -140,6 +141,8 @@ elif [[ "${ROOTIMG}" ]]; then
 else
     echo "error: root image not set, exiting..." && exit 1
 fi
+DRIVE_MAIN="${DRIVE_MAIN} -device virtio-scsi-pci,id=scsi0"
+DRIVE_MAIN="${DRIVE_MAIN} -device scsi-hd,bus=scsi0.0,drive=drive-hd1,id=hd1,bootindex=2"
 
 # SMP
 SMP="sockets=${SOCKETS:-1}"
