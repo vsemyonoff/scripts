@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+
+cat /sys/firmware/acpi/tables/SLIC > acpi-slic.bin
+cat /sys/firmware/acpi/tables/MSDM > acpi-msdm.bin
+dmidecode -t 0 -u | grep $'^\t\t[^"]' | xargs -n1 | perl -lne 'printf "%c", hex($_)' > smbios-t0.bin
+dmidecode -t 1 -u | grep $'^\t\t[^"]' | xargs -n1 | perl -lne 'printf "%c", hex($_)' > smbios-t1.bin
