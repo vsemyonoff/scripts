@@ -21,7 +21,8 @@ VMNAME="$(basename ${0})"
 VMHOME="${IMAGESDIR}/${VMNAME}"
 VMVARS="${VMHOME}/efivars.bin"
 VMCONF="${VMHOME}/qemu.cfg"
-VMLOG="${VMHOME}/qemu.log"
+VMBLOG="${VMHOME}/boot.log"
+VMELOG="${VMHOME}/qemu.log"
 VMSOCK="${XDG_RUNTIME_DIR:-/run/user/${UID}}/${VMNAME}.sock" # Spice unix socket file name
 
 #============= Settings section ================================
@@ -41,6 +42,7 @@ THREADS=        # default: not set, per core
 RAMSIZE=        # default: 1024, MBytes
 AUDIODRV=""     # default: 'alsa', use 'pa' for PulseAudio
 SOUNDHW=""      # default: 'hda', see qemu -soundhw help
+VIDEOHW=""      # default: 'virtio', use 'qxl' for Win guests, see qemu -vga help
 BASEIMG=""      # default: not set, base qcow2 image, relative to ${IMAGESDIR}
 HEADLESS=       # default: not set, any value will disable Spice connection on startup
 SHAREDDIR=""    # default: ${HOME}/Public, shared folder path
@@ -53,10 +55,11 @@ PORTFWD=""      # default: not set, port forwarding in form 'hport1:gport1 hport
 # Validate base image (if set)
 BASEIMG="${BASEIMG:+${IMAGESDIR}/${BASEIMG}}"
 if [[ "${BASEIMG}" && ! -r "${BASEIMG}" ]]; then
-    echo "error: invalid base image path, exiting..." && exit 1
+    echo "error: invalid base image path, exiting..."
+    exit 1
 fi
 
-# Fix 'HEADLESS' value to handle virgl Spice option
+# Fix 'HEADLESS' value
 HEADLESS="${HEADLESS:+off}"
 
 # Host/guest audio driver
@@ -64,7 +67,12 @@ if [[ ! "${HEADLESS}" ]]; then
     export QEMU_AUDIO_DRV="${AUDIODRV:-alsa}"
     SOUND="${SOUNDHW:--device intel-hda -device hda-duplex}"
 fi
-unset AUDIORDV
+unset AUDIORDV SOUNDHW
+
+# Fix 'VIDEOHW' value
+if [[ "${HEADLESS}" ]]; then
+    VIDEOHW="none"
+fi
 
 # Port forwarding
 for pair in ${PORTFWD}; do
@@ -77,6 +85,11 @@ unset PORTFWD
 # Spice connection
 function spice_connect() {
     if [[ $(pgrep --uid ${USER} --full "^qemu.*name\s${VMNAME}\s") ]]; then
+        # Headless VMs have no Spice channels
+        if [[ "${HEADLESS}" ]]; then
+            echo "error: VM was started in headless mode, exiting..."
+            exit 1
+        fi
         # Connect to already started VM
         exec spicy --title="${VMNAME}" \
              --spice-shared-dir="${SHAREDDIR:-${HOME}/Public}" \
@@ -120,6 +133,11 @@ if [[ "${ROOTIMG}" && ! -r "${ROOTIMG}" ]]; then
     fi
 fi
 
+# SMP
+SMP="sockets=${SOCKETS:-1}"
+[[ "${CORES}" ]] && SMP="${SMP},cores=${CORES}"
+[[ "${THREADS}" ]] && SMP="${SMP},threads=${THREADS}"
+
 # EFI bios and vars storage
 if [[ "${EFIBIOS}" && -r "${EFIBIOS}" ]]; then
     DRIVE_EFI="-drive if=pflash,format=raw,readonly,file=${EFIBIOS}"
@@ -128,33 +146,31 @@ if [[ "${EFIBIOS}" && -r "${EFIBIOS}" ]]; then
     fi
     DRIVE_EFI="${DRIVE_EFI} -drive if=pflash,format=raw,file=${VMVARS}"
 else
-    echo "warning: can't find '${EFIBIOS}' image, booting in BIOS mode"
+    echo "warning: can't find '${EFIBIOS:-OVMF}' image, booting in BIOS mode"
 fi
 
+# SCSI controller
+SCSI0="-device virtio-scsi-pci,id=scsi0"
+
 # Main image
-DRIVE_MAIN="-drive format=raw,if=none,media=disk,id=drive-hd1,readonly=off,file"
-#DRIVE_MAIN="-drive if=virtio,media=disk,index=0,file"
+DRIVE_MAIN="${SCSI0} -device scsi-hd,bus=scsi0.0,drive=hd0"
+DRIVE_MAIN="${DRIVE_MAIN} -drive id=hd0,if=none,media=disk,format=qcow2,aio=native,cache=none,readonly=off,file"
 if [[ ! "${ROOTIMG}" && "${BASEIMG}" ]]; then
     DRIVE_MAIN="${DRIVE_MAIN}=${BASEIMG},snapshot=on"
 elif [[ "${ROOTIMG}" ]]; then
     DRIVE_MAIN="${DRIVE_MAIN}=${ROOTIMG}"
 else
-    echo "error: root image not set, exiting..." && exit 1
+    echo "error: root image not set, exiting..."
+    exit 1
 fi
-DRIVE_MAIN="${DRIVE_MAIN} -device virtio-scsi-pci,id=scsi0"
-DRIVE_MAIN="${DRIVE_MAIN} -device scsi-hd,bus=scsi0.0,drive=drive-hd1,id=hd1,bootindex=2"
-
-# SMP
-SMP="sockets=${SOCKETS:-1}"
-[[ "${CORES}" ]] && SMP="${SMP},cores=${CORES}"
-[[ "${THREADS}" ]] && SMP="${SMP},threads=${THREADS}"
 
 # Full QEMU command
 QEMUCMD="qemu-system-x86_64 -name ${VMNAME} -nodefaults \
 -machine type=${MACHINE:-q35},accel=kvm -device intel-iommu \
 -cpu ${CPU:-host} -smp ${SMP} -m size=${RAMSIZE:-1024} \
 -object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-pci,rng=rng0 \
--device virtio-vga,virgl=${HEADLESS:-on} \
+-rtc base=localtime,clock=host \
+-vga ${VIDEOHW:-virtio} \
 -spice unix,addr=${VMSOCK},disable-ticketing,image-compression=off,gl=${HEADLESS:-on} \
 -device qemu-xhci -device usb-kbd -device usb-tablet \
 -nic user,model=virtio-net-pci${HOSTFWD} \
@@ -166,10 +182,12 @@ QEMUCMD="qemu-system-x86_64 -name ${VMNAME} -nodefaults \
 -device virtserialport,chardev=webdav,name=org.spice-space.webdav.0 \
 -chardev socket,id=chrtpm,path=${XDG_RUNTIME_DIR}/tpm2.sock \
 -tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
-${SOUND} -daemonize -D ${VMLOG} ${ARGS_EXTRA}"
+${SOUND} -daemonize -D ${VMELOG} ${ARGS_EXTRA}"
+
+# -device virtio-vga,virgl=${HEADLESS:-on} \
 
 # Debug
-echo "${QEMUCMD}" | tee "${VMLOG}"
+echo "${QEMUCMD}" | tee "${VMBLOG}"
 
 # Start VM
 ${QEMUCMD}
