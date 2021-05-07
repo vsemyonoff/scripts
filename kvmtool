@@ -59,9 +59,6 @@ if [[ "${BASEIMG}" && ! -r "${BASEIMG}" ]]; then
     exit 1
 fi
 
-# Fix 'HEADLESS' value
-HEADLESS="${HEADLESS:+off}"
-
 # Host/guest audio driver
 if [[ ! "${HEADLESS}" ]]; then
     export QEMU_AUDIO_DRV="${AUDIODRV:-alsa}"
@@ -69,9 +66,9 @@ if [[ ! "${HEADLESS}" ]]; then
 fi
 unset AUDIORDV SOUNDHW
 
-# Fix 'VIDEOHW' value
+# Fix 'VIDEOHW' for headless VM
 if [[ "${HEADLESS}" ]]; then
-    VIDEOHW="none"
+    VIDEOHW="std -display none"
 fi
 
 # Port forwarding
@@ -85,6 +82,10 @@ unset PORTFWD
 # Spice connection
 function spice_connect() {
     if [[ $(pgrep --uid ${USER} --full "^qemu.*name\s${VMNAME}\s") ]]; then
+        if [[ "${HEADLESS}" ]]; then
+            echo "VM is running in headless mode, exiting..."
+            exit
+        fi
         exec spicy --title="${VMNAME}" \
              --spice-shared-dir="${SHAREDDIR:-${HOME}/Public}" \
              --uri="spice+unix://${VMSOCK}"
@@ -92,9 +93,7 @@ function spice_connect() {
 }
 
 # Connect to already started VM
-if [[ ! "${HEADLESS}" ]]; then
-    spice_connect
-fi
+spice_connect
 
 # Extra drives (qemu "img", premounted folder, cdrom "iso", floppy "v?fd")
 while [[ "${1}" ]]; do
@@ -137,14 +136,16 @@ SMP="sockets=${SOCKETS:-1}"
 [[ "${THREADS}" ]] && SMP="${SMP},threads=${THREADS}"
 
 # EFI bios and vars storage
-if [[ "${EFIBIOS}" && -r "${EFIBIOS}" ]]; then
-    DRIVE_EFI="-drive if=pflash,format=raw,readonly,file=${EFIBIOS}"
-    if [[ ! -r "${VMVARS}" && -r "${EFIVARS}" ]]; then
-        cp "${EFIVARS}" "${VMVARS}"
+if [[ "${EFIBIOS}" ]]; then
+    if [[ -r "${EFIBIOS}" ]]; then
+        DRIVE_EFI="-drive if=pflash,format=raw,readonly,file=${EFIBIOS}"
+        if [[ ! -r "${VMVARS}" && -r "${EFIVARS}" ]]; then
+            cp "${EFIVARS}" "${VMVARS}"
+        fi
+        DRIVE_EFI="${DRIVE_EFI} -drive if=pflash,format=raw,file=${VMVARS}"
+    else
+        echo "warning: can't find '${EFIBIOS}' image, booting in BIOS mode"
     fi
-    DRIVE_EFI="${DRIVE_EFI} -drive if=pflash,format=raw,file=${VMVARS}"
-else
-    echo "warning: can't find '${EFIBIOS:-OVMF}' image, booting in BIOS mode"
 fi
 
 # SCSI controller
@@ -168,7 +169,7 @@ if [[ ! "${HEADLESS}" ]]; then
 -device virtserialport,chardev=vdagent,name=com.redhat.spice.0 \
 -chardev spiceport,id=webdav,name=webdav \
 -device virtserialport,chardev=webdav,name=org.spice-space.webdav.0 \
--spice unix,addr=${VMSOCK},disable-ticketing,image-compression=off,gl=${HEADLESS:-on}"
+-spice unix,addr=${VMSOCK},disable-ticketing,image-compression=off,gl=on"
 fi
 
 # Full QEMU command
@@ -189,6 +190,4 @@ echo "${QEMUCMD}" | tee "${VMBLOG}"
 ${QEMUCMD}
 
 # Connect to VM
-if [[ ! "${HEADLESS}" ]]; then
-    spice_connect
-fi
+spice_connect
