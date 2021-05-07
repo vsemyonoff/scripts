@@ -40,7 +40,7 @@ repo_update: true
 repo_upgrade: all
 
 runcmd:
-  - sudo mount /dev/vdb /mnt
+  - sudo mount /dev/vda /mnt
   - sudo /mnt/vmsetup
   - sudo umount /mnt
 
