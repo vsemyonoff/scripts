@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+exec sudo openvpn "${XDG_CONFIG_HOME}/openvpn/$(basename ${0}).ovpn"
