@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 
-cd "${1:-${PWD}}" && exec ${TERMINAL} -e mc &
+path="${1:-${PWD}}"
+
+if [[ "${path}" =~ ^file:///?(.*) ]]; then
+    path="/${BASH_REMATCH[1]}"
+fi
+
+cd "${path}" && exec ${TERMINAL} -e mc
