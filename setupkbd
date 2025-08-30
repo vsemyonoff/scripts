@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 MODEL="pc105"
-LAYOUT="us,ru" # ,ua"
+LAYOUT="us,ru${1:+,${1}}"
 OPTIONS="grp:alt_space_toggle,grp_led:scroll,terminate:ctrl_alt_bksp"
 DELAY="330"
 RATE="25"
