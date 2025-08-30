@@ -27,8 +27,8 @@ VMSOCK="${XDG_RUNTIME_DIR:-/run/user/${UID}}/${VMNAME}.sock" # Spice unix socket
 
 #============= Settings section ================================
 # EFI images, unset to boot in compatibility mode
-EFIBIOS="/usr/share/ovmf/x64/OVMF_CODE.fd"
-EFIVARS="/usr/share/ovmf/x64/OVMF_VARS.fd"
+EFIBIOS="/usr/share/edk2/x64/OVMF_CODE.4m.fd"
+EFIVARS="/usr/share/ovmf/x64/OVMF_VARS.4m.fd"
 # VM root fs image, can be empty if BASEIMG is set, in such case all fs changes will
 # be lost after VM power down (see qemu -snapshot option). In combination with BASEIMG
 # will contain only changes to BASEIMG and leave BASEIMG unmodified.
@@ -39,13 +39,13 @@ CPU=""          # default: 'host', see qemu -cpu help
 SOCKETS=        # default: 1, processors count
 CORES=          # default: not set, per socket
 THREADS=        # default: not set, per core
-RAMSIZE=        # default: 1024, MBytes
-AUDIODRV=""     # default: 'alsa', use 'pa' for PulseAudio
-SOUNDHW=""      # default: 'hda', see qemu -soundhw help
+RAMSIZE=        # default: 4096, MBytes
+AUDIODRV=""     # default: 'alsa', see qemu -audio help
+AUDIOHW=""      # default: 'hda', see qemu -audio model=help
 VIDEOHW=""      # default: 'qxl', use 'virtio' for Linux guests after installation, see qemu -vga help
 BASEIMG=""      # default: not set, base qcow2 image, relative to ${IMAGESDIR}
 HEADLESS=       # default: not set, any value will disable Spice connection on startup
-SHAREDDIR=""    # default: ${HOME}/Public, shared folder path
+SHAREDDIR=""    # default: none, shared host <-> guest folder path
 PORTFWD=""      # default: not set, port forwarding in form 'hport1:gport1 hport2:gport2 ...'
 #============= End of settings section =========================
 
@@ -61,10 +61,12 @@ fi
 
 # Host/guest audio driver
 if [[ ! "${HEADLESS}" ]]; then
-    export QEMU_AUDIO_DRV="${AUDIODRV:-alsa}"
-    SOUND="${SOUNDHW:--device intel-hda -device hda-duplex}"
+    AUDIODRV="${AUDIODRV:-alsa}"
+    #export QEMU_AUDIO_DRV="${AUDIODRV}"
+    AUDIOHW="${AUDIOHW:-hda}"
+    AUDIO="-audio ${AUDIODRV},model=${AUDIOHW}"
 fi
-unset AUDIORDV SOUNDHW
+unset AUDIORDV AUDIOHW
 
 # Fix 'VIDEOHW' for headless VM
 if [[ "${HEADLESS}" ]]; then
@@ -86,9 +88,7 @@ function spice_connect() {
             echo "VM is running in headless mode, exiting..."
             exit
         fi
-        exec spicy --title="${VMNAME}" \
-             --spice-shared-dir="${SHAREDDIR:-${HOME}/Public}" \
-             --uri="spice+unix://${VMSOCK}"
+        exec spicy --title="${VMNAME}" --uri="spice+unix://${VMSOCK}"
     fi
 }
 
@@ -101,7 +101,7 @@ while [[ "${1}" ]]; do
         if [[ "${1}" =~ (.*)\.img$ ]]; then
             DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=virtio,media=disk,file=${1}"
         elif [[ "${1}" =~ (.*)\.iso$ ]]; then
-            DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=ide,media=cdrom,readonly,file=${1}"
+            DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=ide,media=cdrom,readonly=on,file=${1}"
         elif [[ "${1}" =~ (.*)\.v?fd$ ]]; then
             DRIVE_EXTRA="${DRIVE_EXTRA} -drive if=floppy,file=${1}"
         fi
@@ -119,7 +119,7 @@ mkdir -p "${VMHOME}" || exit 1
 # Validate virtual image existence
 if [[ "${ROOTIMG}" && ! -r "${ROOTIMG}" ]]; then
     if [[ "${BASEIMG}" ]]; then
-        qemu-img create -f qcow2 -b "${BASEIMG}" "${ROOTIMG}" || exit 1
+        qemu-img create -f qcow2 -b "${BASEIMG}" -F qcow2 "${ROOTIMG}" || exit 1
     elif [[ "${DRIVE_EXTRA}" ]]; then
         echo -n "Enter virtual image size (gigabytes, default: 32G): " && read ROOTSIZE
         qemu-img create -f qcow2 "${ROOTIMG}" ${ROOTSIZE:-32}G || exit 1
@@ -138,7 +138,7 @@ SMP="sockets=${SOCKETS:-1}"
 # EFI bios and vars storage
 if [[ "${EFIBIOS}" ]]; then
     if [[ -r "${EFIBIOS}" ]]; then
-        DRIVE_EFI="-drive if=pflash,format=raw,readonly,file=${EFIBIOS}"
+        DRIVE_EFI="-drive if=pflash,format=raw,readonly=on,file=${EFIBIOS}"
         if [[ ! -r "${VMVARS}" && -r "${EFIVARS}" ]]; then
             cp "${EFIVARS}" "${VMVARS}"
         fi
@@ -169,19 +169,19 @@ if [[ ! "${HEADLESS}" ]]; then
 -device virtserialport,chardev=vdagent,name=com.redhat.spice.0 \
 -chardev spiceport,id=webdav,name=webdav \
 -device virtserialport,chardev=webdav,name=org.spice-space.webdav.0 \
--spice unix,addr=${VMSOCK},disable-ticketing,image-compression=off,gl=on"
+-spice unix=on,addr=${VMSOCK},disable-ticketing=on,image-compression=off,gl=on"
 fi
 
 # Full QEMU command
 QEMUCMD="qemu-system-x86_64 -name ${VMNAME} -nodefaults \
 -machine type=${MACHINE:-q35},accel=kvm \
--cpu ${CPU:-host} -smp ${SMP} -m size=${RAMSIZE:-1024} \
+-cpu ${CPU:-host} -smp ${SMP} -m size=${RAMSIZE:-4096} \
 -object rng-random,id=rng0,filename=/dev/urandom -device virtio-rng-pci,rng=rng0 \
 -rtc base=localtime,clock=host -vga ${VIDEOHW:-qxl} ${SPICE} \
 -device qemu-xhci -device usb-kbd -device usb-tablet \
 -nic user,model=virtio-net-pci${HOSTFWD} \
 -boot order=cda,once=dca ${DRIVE_EFI} ${DRIVE_MAIN} ${DRIVE_EXTRA} \
-${SOUND} -daemonize -D ${VMELOG} ${ARGS_EXTRA}"
+${AUDIO} -daemonize -D ${VMELOG} ${ARGS_EXTRA}"
 
 # Debug
 echo "${QEMUCMD}" | tee "${VMBLOG}"

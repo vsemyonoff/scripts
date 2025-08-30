@@ -6,7 +6,7 @@
 
 THIS="$(basename ${0})"
 SEEDDIR="${1:-seed}"
-KEYFILE="${2:-${HOME}/.ssh/id_rsa.pub}"
+KEYFILE="${2:-${HOME}/.ssh/id_ed25519.pub}"
 
 function usage() {
     echo "usage: ${THIS} [seed [key.pub]]"
@@ -17,7 +17,11 @@ function usage() {
 [[ ! -d "${SEEDDIR}" ]] && usage && exit 1
 [[ ! -r "${KEYFILE}" ]] && usage && exit 1
 
-sed "s|@SSH_KEY@|$(cat ${KEYFILE})|" << EOF > "${SEEDDIR}/user-data"
+METADATA="${SEEDDIR}/meta-data"
+[[ ! -r "${METADATA}" ]] && echo "local-hostname: $(basename ${PWD})" > "${METADATA}"
+
+USERDATA="${SEEDDIR}/user-data"
+sed "s|@SSH_KEY@|$(cat ${KEYFILE})|" << EOF > "${USERDATA}"
 #cloud-config
 users:
   - name: admin
