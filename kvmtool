@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Qemu VMs and runtime location
-IMAGESDIR="${QEMU_IMAGES_DIR:-${XDG_HOME:-${HOME}/.local}/var/lib/qemu}"
+IMAGESDIR="${QEMU_IMAGES_DIR:-${XDG_STATE_HOME:-${HOME}/.local/state}/qemu}"
 
 # If not symlink just show VMs status and exit
 if [[ ! -L "${0}" ]]; then
@@ -34,19 +34,19 @@ EFIVARS="/usr/share/ovmf/x64/OVMF_VARS.4m.fd"
 # will contain only changes to BASEIMG and leave BASEIMG unmodified.
 ROOTIMG="${VMHOME}/rootfs.qcow2"
 # Other settings
-MACHINE=""      # defqult: 'q35', see qemu -machine help
-CPU=""          # default: 'host', see qemu -cpu help
-SOCKETS=        # default: 1, processors count
-CORES=          # default: not set, per socket
-THREADS=        # default: not set, per core
-RAMSIZE=        # default: 4096, MBytes
-AUDIODRV=""     # default: 'alsa', see qemu -audio help
-AUDIOHW=""      # default: 'hda', see qemu -audio model=help
-VIDEOHW=""      # default: 'qxl', use 'virtio' for Linux guests after installation, see qemu -vga help
-BASEIMG=""      # default: not set, base qcow2 image, relative to ${IMAGESDIR}
-HEADLESS=       # default: not set, any value will disable Spice connection on startup
-SHAREDDIR=""    # default: none, shared host <-> guest folder path
-PORTFWD=""      # default: not set, port forwarding in form 'hport1:gport1 hport2:gport2 ...'
+MACHINE=""   # defqult: 'q35', see qemu -machine help
+CPU=""       # default: 'host', see qemu -cpu help
+SOCKETS=     # default: 1, processors count
+CORES=       # default: not set, per socket
+THREADS=     # default: not set, per core
+RAMSIZE=     # default: 4096, MBytes
+AUDIODRV=""  # default: 'alsa', see qemu -audio help
+AUDIOHW=""   # default: 'hda', see qemu -audio model=help
+VIDEOHW=""   # default: 'qxl', use 'virtio' for Linux guests after installation, see qemu -vga help
+BASEIMG=""   # default: not set, base qcow2 image, relative to ${IMAGESDIR}
+HEADLESS=    # default: not set, any value will disable Spice connection on startup
+SHAREDDIR="" # default: none, shared host <-> guest folder path
+PORTFWD=""   # default: not set, port forwarding in form 'hport1:gport1 hport2:gport2 ...'
 #============= End of settings section =========================
 
 # Read VM settings
