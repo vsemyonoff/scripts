@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+# Parse arguments
+args=()
+while [[ "${1}" ]]; do
+    echo "${1}" " --"
+    case "${1}" in
+    -d | -display)
+        shift
+        args+=("--display" "${1}")
+        ;;
+    -h | -help)
+        exec xsel --help
+        ;;
+    -i | -input)
+        args+=("--input")
+        ;;
+    -o | -out)
+        args+=("--ouptut")
+        ;;
+    -quiet)
+        args+=("--nodetach")
+        ;;
+    -selection)
+        shift
+        case "$1" in
+        clipboard)
+            args+=("--clipboard")
+            ;;
+        primary)
+            args+=("--primary")
+            ;;
+        secondary)
+            args+=("--secondary")
+            ;;
+        *)
+            echo "error: invalid selection '${1}'"
+            exit 1
+            ;;
+        esac
+        ;;
+    -verbose)
+        args+=("--verbose")
+        ;;
+    -v | -version)
+        exec xsel --version
+        ;;
+    *) ;;
+    esac
+    shift
+done
+args+=("--logfile" "${XDG_LOG_HOME}/xsel.log")
+
+set -- "${args[@]}"
+
+exec xsel "${@}"
