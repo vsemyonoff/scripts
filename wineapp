@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 ###
-# Example '${WINEPREFIX}/wine.cfg' file
+# Example '${WINEPREFIX}/game.cfg' file
 ###
-#APP_ARCH=
 #APP_PATH="Games/Program"
 #EXE_FILE="Program.exe"
 #EXE_OPTS=
@@ -11,19 +10,39 @@
 CWD="$(pwd)"
 
 # Detect wine prefix
-WINEPREFIX="$(dirname $(realpath ${0}))"
+THIS="${0}"
+RELPATH="$(realpath $(dirname ${THIS}))"
+if [[ ! -L "${THIS}" ]]; then
+    echo "error: '$(basename ${THIS})' assumed to be symlinked inside 'WINEPREFIX'"
+    exit 1
+fi
+while [[ -L "${THIS}" ]]; do
+    LINK="$(readlink ${THIS})"
+    case "${LINK}" in
+        /*)
+            RELPATH="$(dirname ${LINK})"
+            ;;
+        ./*|../*)
+            RELPATH="${RELPATH}/$(dirname ${LINK})"
+            ;;
+    esac
+    THIS_BASE="${RELPATH}/$(basename ${LINK})"
+    if [[ ! -L "${THIS_BASE}" ]]; then
+        break
+    fi
+    THIS="${THIS_BASE}"
+done
+export WINEPREFIX="$(realpath $(dirname ${THIS}))"
+unset RELPATH LINK THIS THIS_BASE
 
 # Load config if any
-CONFIG="${APP_CONF:-${WINEPREFIX}/wine.cfg}"
+CONFIG="${CONFIG:-${WINEPREFIX}/game.cfg}"
 [[ -r "${CONFIG}" ]] && source "${CONFIG}"
-
-# Set wine version
-WINEARCH="win${APP_ARCH:-32}"
-export WINEARCH WINEPREFIX
+unset CONFIG
 
 ( cd "${WINEPREFIX}"
   # Init 'drive_c'
-  if [[ ! -d "drive_c" ]]; then
+  if [[ ! -d "drive_c/windows" ]]; then
       rm -fr "dosdevices" ".dxvk-installed" ".update-timestamp" *.reg
       wineboot --init && wineboot --end-session
       while [[ ! -f "system.reg" ]]; do sleep 0.1; done
@@ -33,8 +52,6 @@ export WINEARCH WINEPREFIX
   if [[ ! -f ".update-timestamp" ]]; then
       wineboot --update && wineboot --end-session
       while [[ ! -f "system.reg" ]]; do sleep 0.1; done
-      # while read i; do if [[ "${i}" = "system.reg" ]]; then break; fi; done \
-      #     < <(inotifywait -e create,open,moved_to --format '%f' --quiet . --monitor)
       [[ -f ".dxvk-installed" ]] && setup_dxvk uninstall --symlink && rm -f ".dxvk-installed"
   fi
 
