@@ -3,7 +3,6 @@
 # Parse arguments
 args=()
 while [[ "${1}" ]]; do
-    echo "${1}" " --"
     case "${1}" in
     -d | -display)
         shift
