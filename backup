@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+THISNAME="$(hostnamectl hostname)"
+CFGS_DIR="/home/svlad/Desktop/Fastmail/backup"
+CFGS_PACK="${CFGS_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${THISNAME}.tar.xz"
+
+mkdir -p "$(dirname ${CFGS_PACK})"
+
+( cd /home/svlad/Sources/dotfiles
+  git ls-files | tar --create --preserve-permissions --xz --file="${CFGS_PACK}" --directory="/home/svlad" --files-from -
+)
+
+echo $(groups svlad) > "${CFGS_DIR}/dotfiles/groups.list"
+cp "${CFGS_PACK}" "${CFGS_DIR}/dotfiles-${THISNAME}-latest.tar.xz"
