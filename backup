@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-THISNAME="$(hostnamectl hostname)"
-CFGS_DIR="/home/svlad/Desktop/Fastmail/backup"
-CFGS_PACK="${CFGS_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${THISNAME}.tar.xz"
+SERVNAME="$(hostnamectl hostname)"
+CFGS_DIR="/home/svlad/.local/var/lib/fastmail/backup"
+CFGS_PACK="${CFGS_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${SERVNAME}.tar.xz"
 
 mkdir -p "$(dirname ${CFGS_PACK})"
 
@@ -11,4 +11,4 @@ mkdir -p "$(dirname ${CFGS_PACK})"
 )
 
 echo $(groups svlad) > "${CFGS_DIR}/dotfiles/groups.list"
-cp "${CFGS_PACK}" "${CFGS_DIR}/dotfiles-${THISNAME}-latest.tar.xz"
+cp "${CFGS_PACK}" "${CFGS_DIR}/dotfiles-${SERVNAME}-latest.tar.xz"
