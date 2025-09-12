@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
+source "${HOME}/.profile.d/env.d/fastmail.env"
+
 SERVNAME="$(hostnamectl hostname)"
-CFGS_DIR="/home/svlad/.local/var/lib/fastmail/backup"
-CFGS_PACK="${CFGS_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${SERVNAME}.tar.xz"
+BACKUP_DIR="${FASTMAIL_HOME}/backup"
+PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${SERVNAME}.tar.xz"
 
-mkdir -p "$(dirname ${CFGS_PACK})"
+mkdir -p "$(dirname ${PACK})"
 
-( cd /home/svlad/Sources/dotfiles
-  git ls-files | tar --create --preserve-permissions --xz --file="${CFGS_PACK}" --directory="/home/svlad" --files-from -
+( cd "${HOME}/Sources/dotfiles"
+  git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from -
 )
 
-echo $(groups svlad) > "${CFGS_DIR}/dotfiles/groups.list"
-cp "${CFGS_PACK}" "${CFGS_DIR}/dotfiles-${SERVNAME}-latest.tar.xz"
+echo "$(groups ${USER})" > "${BACKUP_DIR}/dotfiles/groups.list"
+cp "${PACK}" "${BACKUP_DIR}/dotfiles-${SERVNAME}.tar.xz"
