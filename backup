@@ -4,8 +4,8 @@ set -e
 
 source "${HOME}/.profile.d/env.d/fastmail.env"
 
-BACKUP_DIR="${FASTMAIL_HOME}/backup"
-PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
+CLOUDDIR="${FASTMAIL_HOME}/backup"
+PACK="${CLOUDDIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
 
 mkdir -p "$(dirname ${PACK})"
 
@@ -13,5 +13,5 @@ mkdir -p "$(dirname ${PACK})"
   git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from=-
 )
 
-echo "$(groups ${USER})" > "${BACKUP_DIR}/dotfiles/groups.list"
-cp "${PACK}" "${BACKUP_DIR}/dotfiles-${HOSTNAME}.tar.xz"
+echo "$(groups ${USER})" > "${CLOUDDIR}/dotfiles/groups.list"
+cp "${PACK}" "${CLOUDDIR}/dotfiles-${HOSTNAME}.tar.xz"
