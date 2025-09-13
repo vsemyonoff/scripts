@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 source "${HOME}/.profile.d/env.d/fastmail.env"
 
 BACKUP_DIR="${FASTMAIL_HOME}/backup"
