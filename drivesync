@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -e
+
+function usage() {
+    echo "usage: $(basename ${0}) profile [extra rclone options]"
+    exit 1
+}
+
+[[ ${#} < 1 ]] && usage
+
+case "${1}" in
+    -*)
+        usage
+        ;;
+    *)
+        PROFILE="${1}"
+        shift
+        ;;
+esac
+
+CFG_FILE="${XDG_CONFIG_HOME}/rclone/${PROFILE}.conf"
+LOG_FILE="${XDG_LOG_HOME}/rclone/${PROFILE}.log"
+
+if [[ ! -r "${CFG_FILE}" ]]; then
+    echo "error: invalid profile '${PROFILE}'"
+    usage
+fi
+
+
+source "${HOME}/.profile.d/env.d/xdg.env"
+source "${HOME}/.profile.d/env.d/${PROFILE}.env"
+
+REMOTE_PATH="${PROFILE^^}_PATH"
+LOCAL_PATH="${PROFILE^^}_HOME"
+
+mkdir -p "${!LOCAL_PATH}" "$(dirname ${LOG_FILE})"
+exec rclone bisync --config="${CFG_FILE}"            \
+                   --compare="size,modtime,checksum" \
+                   --check-filename=".gitkeep"       \
+                   --log-file="${LOG_FILE}"          \
+                   --create-empty-src-dirs           \
+                   --slow-hash-sync-only             \
+                   --log-level INFO                  \
+                   --check-access                    \
+                   --resilient                       \
+                   --metadata                        \
+                   --fix-case                        \
+                   "${!LOCAL_PATH}"                  \
+                   "drive:${!REMOTE_PATH}"           \
+                   "${@}"
+#--resync --dry-run
