@@ -62,4 +62,4 @@ exec rclone bisync --config="${CFG_FILE}"            \
                    --fix-case                        \
                    "${LOCAL_PATH}"                   \
                    "${REMOTE_PATH}"                  \
-                   "${INIT}" "${@}"
+                   ${INIT} "${@}"
