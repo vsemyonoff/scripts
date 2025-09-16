@@ -1,17 +1,64 @@
 #!/usr/bin/env bash
 
-set -e
+function echoerr() { cat <<< "$@" 1>&2; }
 
-source "${HOME}/.profile.d/env.d/fastmail.env"
+# Prevent localized dates and error messages
+LANG=C
 
-CLOUDDIR="${FASTMAIL_HOME}/backup"
-PACK="${CLOUDDIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
+# Script name & split 'script@cloud' symlink form
+SRC="$(basename ${BASH_SOURCE[0]})"
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+CLOUD="${SRC#*@}"
 
-mkdir -p "$(dirname ${PACK})"
+# Select default cloud name if can not obtain from the script's name
+[[ "${CLOUD}" == "${SRC}" ]] && CLOUD="${CLOUD_DEFAULT:-fastmail}"
 
-( cd "${HOME}/Sources/dotfiles"
+# Obtain cloud home
+source "${HOME}/.profile.d/env.d/${CLOUD}.env"
+CLOUD_HOME_VAR="${CLOUD^^}_HOME"
+CLOUD_HOME="${!CLOUD_HOME_VAR}"
+
+# Set backup dir
+BACKUP_DIR="${CLOUD_HOME}/backup"
+PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
+
+# Populate environment
+PARENT="$(ps -o comm= ${PPID})"
+case "${PARENT}" in
+    anacron|run-parts|systemd)
+        source "${HOME}/.profile.d/env.d/xdg.env"
+        PARENT="${PARENT^}"
+        SEND_REPORT=1
+        ;;
+    *)
+        PARENT="${THIS^}"
+        ;;
+esac
+
+# Prepare errors log
+TMP_DIR="${XDG_RUNTIME_DIR}/backup"; mkdir -p "${TMP_DIR}"
+ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"
+
+# Do the job
+{ pushd "${HOME}/Sources/dotfiles" 1>/dev/null 2>&1
+  mkdir -p "$(dirname ${PACK})"
+
   git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from=-
-)
 
-echo "$(groups ${USER})" > "${CLOUDDIR}/dotfiles/groups.list"
-cp "${PACK}" "${CLOUDDIR}/dotfiles-${HOSTNAME}.tar.xz"
+  echo "$(groups ${USER})" > "${BACKUP_DIR}/dotfiles/groups.list"
+  cp "${PACK}" "${BACKUP_DIR}/dotfiles-${HOSTNAME}.tar.xz"
+
+  popd 1>/dev/null 2>&1
+} 2> >(tee "${ERR_LOG}")
+
+# Email errors (if any) to 'USER'
+if [[ -s "${ERR_LOG}" ]]; then
+    if [[ "${SEND_REPORT}" ]]; then
+        printf "Subject: [${HOSTNAME}]:Backup $(date)\n\n$(cat ${ERR_LOG})" |
+            sendmail -F "[${HOSTNAME}]:${PARENT}" "${USER}" 1>/dev/null 2>&1
+    fi
+    RET=1
+fi
+rm -f "${ERR_LOG}"
+
+exit ${RET}
