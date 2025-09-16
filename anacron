@@ -2,7 +2,8 @@
 
 source "${HOME}/.profile.d/env.d/xdg.env"
 
-ANACRON_TAB="${XDG_CONFIG_HOME}/cron.d/schedule"
+ANACRON_TAB="${XDG_CONFIG_HOME}/anacron/schedule"
 ANACRON_SPOOL="${XDG_SPOOL_HOME}/anacron"
 
+mkdir -p "${ANACRON_SPOOL}"
 exec /usr/bin/anacron -t "${ANACRON_TAB}" -S "${ANACRON_SPOOL}" "${@}"
