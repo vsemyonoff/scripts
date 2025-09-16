@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+set -e
+
+THIS="$(basename ${BASH_SOURCE[0]})"
+
+function echoerr() { cat <<< "$@" 1>&2; }
+
+function usage() {
+    echoerr "usage: ${THIS} profile"
+    exit 1
+}
+
+# Expect one argument: profile name to monitor
+[[ ${#} != 1 ]] && usage
+PROFILE="${1}"
+
+# Populate environment
+PARENT="$(ps -o comm= ${PPID})"
+case "${PARENT}" in
+    anacron|run-parts|systemd)
+        source "${HOME}/.profile.d/env.d/xdg.env"
+        ;;
+    *)
+        ;;
+esac
+
+source "${HOME}/.profile.d/env.d/${PROFILE}.env"
+TARGET_VAR="${PROFILE^^}_HOME"
+TARGET="${!TARGET_VAR}"
+EVENTS="attrib,create,delete,modify,move"
+OUTFIFO="${XDG_RUNTIME_DIR}/drivesync/${PROFILE}.fifo"
+
+mkdir -p "$(dirname ${OUTFIFO})"
+rm -fr "${OUTFIFO}" && mkfifo --mode=600 "${OUTFIFO}"
+
+exec inotifywait --outfile "${OUTFIFO}" \
+                 --event "${EVENTS}"    \
+                 --no-dereference       \
+                 --recursive            \
+                 --monitor              \
+                 "${TARGET}"

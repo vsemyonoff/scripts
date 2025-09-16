@@ -4,13 +4,15 @@ set -e
 
 THIS="$(basename ${BASH_SOURCE[0]})"
 
+function echoerr() { cat <<< "$@" 1>&2; }
+
 function usage() {
-    echo "usage: ${THIS} profile [extra rclone options]"
+    echoerr "usage: ${THIS} profile [extra rclone options]"
     exit 1
 }
 
+# First arg: profile name to sync, the rest will pass to 'rclone'
 [[ ${#} < 1 ]] && usage
-
 case "${1}" in
     -*)
         usage
@@ -21,33 +23,38 @@ case "${1}" in
         ;;
 esac
 
-CFG_FILE="${XDG_CONFIG_HOME}/rclone/${PROFILE}.conf"
-LOG_FILE="${XDG_LOG_HOME}/rclone/${PROFILE}.log"
+# Populate environment
+PARENT="$(ps -o comm= ${PPID})"
+case "${PARENT}" in
+    anacron|run-parts|systemd)
+        source "${HOME}/.profile.d/env.d/xdg.env"
+        ;;
+    *)
+        ;;
+esac
 
+CFG_FILE="${XDG_CONFIG_HOME}/drivesync/${PROFILE}.conf"
+LOG_FILE="${XDG_LOG_HOME}/drivesync/${PROFILE}.log"
+
+# Validate profile existence
 if [[ ! -r "${CFG_FILE}" ]]; then
     echo "[${THIS}]: invalid profile '${PROFILE}'"
     usage
 fi
 
-source "${HOME}/.profile.d/env.d/xdg.env"
 source "${HOME}/.profile.d/env.d/${PROFILE}.env"
-
-LOCAL_PATH="${PROFILE^^}_HOME"
-LOCAL_PATH="${!LOCAL_PATH}"
-REMOTE_PATH="${PROFILE^^}_PATH"
-REMOTE_PATH="drive:${!REMOTE_PATH}"
+LOCAL_PATH_VAR="${PROFILE^^}_HOME"
+LOCAL_PATH="${!LOCAL_PATH_VAR}"; unset LOCAL_PATH_VAR
+REMOTE_PATH_VAR="${PROFILE^^}_PATH"
+REMOTE_PATH="drive:${!REMOTE_PATH_VAR}"; unset REMOTE_PATH_VAR
 CHECK_FILE=".gitkeep"
 echo "[${THIS}]: local '${LOCAL_PATH}', remote '${REMOTE_PATH}', check file '${CHECK_FILE}'"
 
 mkdir -p "${LOCAL_PATH}" "$(dirname ${LOG_FILE})"
-if [[ -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
-    source "${LOCAL_PATH}/${CHECK_FILE}"
-    [[ "${INIT}" ]] && (>"${LOCAL_PATH}/${CHECK_FILE}")
-else
-    echo "INIT=--resync" > "${LOCAL_PATH}/${CHECK_FILE}"
-    INIT="--resync --dry-run"
+if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
+    touch "${LOCAL_PATH}/${CHECK_FILE}"
+    RESYNC="--resync"
 fi
-[[ "${INIT}" ]] && echo "[${THIS}]: init option(s) '${INIT}'"
 
 exec rclone bisync --config="${CFG_FILE}"            \
                    --compare="size,modtime,checksum" \
@@ -62,4 +69,4 @@ exec rclone bisync --config="${CFG_FILE}"            \
                    --fix-case                        \
                    "${LOCAL_PATH}"                   \
                    "${REMOTE_PATH}"                  \
-                   ${INIT} "${@}"
+                   "${@}" ${RESYNC}
