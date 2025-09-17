@@ -23,50 +23,43 @@ case "${1}" in
         ;;
 esac
 
-# Populate environment
-PARENT="$(ps -o comm= ${PPID})"
-case "${PARENT}" in
-    anacron|run-parts|systemd)
-        source "${HOME}/.profile.d/env.d/xdg.env"
-        ;;
-    *)
-        ;;
-esac
-
 CFG_FILE="${XDG_CONFIG_HOME}/drivesync/${PROFILE}.conf"
 LOG_FILE="${XDG_LOG_HOME}/drivesync/${PROFILE}.log"
 
 # Validate profile existence
 if [[ ! -r "${CFG_FILE}" ]]; then
-    echo "[${THIS}]: invalid profile '${PROFILE}'"
+    echoerr "[${THIS}]: invalid profile '${PROFILE}'"
     usage
 fi
 
-source "${HOME}/.profile.d/env.d/${PROFILE}.env"
 LOCAL_PATH_VAR="${PROFILE^^}_HOME"
 LOCAL_PATH="${!LOCAL_PATH_VAR}"; unset LOCAL_PATH_VAR
 REMOTE_PATH_VAR="${PROFILE^^}_PATH"
 REMOTE_PATH="drive:${!REMOTE_PATH_VAR}"; unset REMOTE_PATH_VAR
 CHECK_FILE=".gitkeep"
-echo "[${THIS}]: local '${LOCAL_PATH}', remote '${REMOTE_PATH}', check file '${CHECK_FILE}'"
 
 mkdir -p "${LOCAL_PATH}" "$(dirname ${LOG_FILE})"
 if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
+    # Create check-file, copy to remote & resync
     touch "${LOCAL_PATH}/${CHECK_FILE}"
-    RESYNC="--resync"
+    rclone copyto "${LOCAL_PATH}/${CHECK_FILE}" \
+                  "${REMOTE_PATH}/${CHECK_FILE}"
+    ARGS="--resync"
+else
+    ARGS="--check-access"
 fi
 
+# Sync
 exec rclone bisync --config="${CFG_FILE}"            \
+                   "${LOCAL_PATH}"                   \
+                   "${REMOTE_PATH}"                  \
                    --compare="size,modtime,checksum" \
                    --check-filename="${CHECK_FILE}"  \
                    --log-file="${LOG_FILE}"          \
                    --create-empty-src-dirs           \
                    --slow-hash-sync-only             \
-                   --log-level INFO                  \
-                   --check-access                    \
+                   --log-level NOTICE                \
                    --resilient                       \
                    --metadata                        \
                    --fix-case                        \
-                   "${LOCAL_PATH}"                   \
-                   "${REMOTE_PATH}"                  \
-                   "${@}" ${RESYNC}
+                   ${ARGS} "${@}"

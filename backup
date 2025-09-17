@@ -14,7 +14,6 @@ CLOUD="${SRC#*@}"
 [[ "${CLOUD}" == "${SRC}" ]] && CLOUD="${CLOUD_DEFAULT:-fastmail}"
 
 # Obtain cloud home
-source "${HOME}/.profile.d/env.d/${CLOUD}.env"
 CLOUD_HOME_VAR="${CLOUD^^}_HOME"
 CLOUD_HOME="${!CLOUD_HOME_VAR}"
 
@@ -26,7 +25,6 @@ PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
 PARENT="$(ps -o comm= ${PPID})"
 case "${PARENT}" in
     anacron|run-parts|systemd)
-        source "${HOME}/.profile.d/env.d/xdg.env"
         PARENT="${PARENT^}"
         SEND_REPORT=1
         ;;

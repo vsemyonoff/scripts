@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source "${HOME}/.profile.d/env.d/xdg.env"
-
 ANACRON_TAB="${XDG_CONFIG_HOME}/anacron/schedule"
 ANACRON_SPOOL="${XDG_SPOOL_HOME}/anacron"
 

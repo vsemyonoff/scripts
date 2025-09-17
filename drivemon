@@ -15,28 +15,26 @@ function usage() {
 [[ ${#} != 1 ]] && usage
 PROFILE="${1}"
 
-# Populate environment
 PARENT="$(ps -o comm= ${PPID})"
-case "${PARENT}" in
-    anacron|run-parts|systemd)
-        source "${HOME}/.profile.d/env.d/xdg.env"
-        ;;
-    *)
-        ;;
-esac
+if [[ "${PARENT}" != "systemd" ]]; then
+    echoerr "[${THIS}]: supposed to be called from systemd service, exiting..."
+    exit 1
+fi
 
-source "${HOME}/.profile.d/env.d/${PROFILE}.env"
 TARGET_VAR="${PROFILE^^}_HOME"
 TARGET="${!TARGET_VAR}"
 EVENTS="attrib,create,delete,modify,move"
-OUTFIFO="${XDG_RUNTIME_DIR}/drivesync/${PROFILE}.fifo"
+SOCK="${XDG_RUNTIME_DIR}/drivesync/${PROFILE}.fifo"
 
-mkdir -p "$(dirname ${OUTFIFO})"
-rm -fr "${OUTFIFO}" && mkfifo --mode=600 "${OUTFIFO}"
+# Socket must be created by corresponding systemd unit
+if [[ ! -p "${SOCK}" ]]; then
+    echoerr "[${THIS}]: '${SOCK}' output socket does not exists, exiting..."
+    exit 1
+fi
 
-exec inotifywait --outfile "${OUTFIFO}" \
-                 --event "${EVENTS}"    \
-                 --no-dereference       \
-                 --recursive            \
-                 --monitor              \
+exec inotifywait --outfile "${SOCK}" \
+                 --event "${EVENTS}" \
+                 --no-dereference    \
+                 --recursive         \
+                 --monitor           \
                  "${TARGET}"
