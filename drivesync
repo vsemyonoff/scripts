@@ -40,10 +40,19 @@ CHECK_FILE=".gitkeep"
 
 mkdir -p "${LOCAL_PATH}" "$(dirname ${LOG_FILE})"
 if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
-    # Create check-file, copy to remote & resync
-    touch "${LOCAL_PATH}/${CHECK_FILE}"
-    rclone copyto "${LOCAL_PATH}/${CHECK_FILE}" \
-                  "${REMOTE_PATH}/${CHECK_FILE}"
+    # Copy check-file from remote if not present
+    rclone copyto --config="${CFG_FILE}"        \
+                  "${REMOTE_PATH}/${CHECK_FILE}"\
+                  "${LOCAL_PATH}/${CHECK_FILE}" ||
+        echoerr "[${THIS}]: check-file absent, creating the new one..."
+    if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
+        # Create check-file, copy to remote
+        touch "${LOCAL_PATH}/${CHECK_FILE}"
+        rclone copyto --config="${CFG_FILE}"        \
+                      "${LOCAL_PATH}/${CHECK_FILE}" \
+                      "${REMOTE_PATH}/${CHECK_FILE}"
+    fi
+    # Set resync flag
     ARGS="--resync"
 else
     ARGS="--check-access"
