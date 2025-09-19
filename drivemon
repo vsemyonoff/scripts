@@ -1,38 +1,47 @@
 #!/usr/bin/env bash
-
+LANG=C
 set -e
 
-THIS="$(basename ${BASH_SOURCE[0]})"
-
-function echoerr() { cat <<< "$@" 1>&2; }
-
-function usage() {
-    echoerr "usage: ${THIS} profile"
-    exit 1
+function echoerr() {
+    printf "%b\n" "${*}" 1>&2
 }
 
-# Expect one argument: profile name to monitor
-[[ ${#} != 1 ]] && usage
-PROFILE="${1}"
+function usage() {
+    [[ ${#} > 0 ]] && echoerr "[${THIS}] error: ${@}\n"
+    echoerr "usage: ${THIS} [cloud: default '${CLOUD}']"
+    exit ${#}
+}
 
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+CLOUD="${CLOUD_DEFAULT:-fastmail}"
+
+# Expect not more than one argument
+[[ ${#} > 1 ]] && usage "too many aruments"
+CLOUD="${1:-${CLOUD}}"
+
+# Validate parent process
 PARENT="$(ps -o comm= ${PPID})"
-if [[ "${PARENT}" != "systemd" ]]; then
-    echoerr "[${THIS}]: supposed to be called from systemd service, exiting..."
-    exit 1
-fi
+[[ "${PARENT}" != "systemd" ]] &&
+    usage "supposed to be called from systemd service"
+unset PARENT
 
-TARGET_VAR="${PROFILE^^}_HOME"
-TARGET="${!TARGET_VAR}"
+# Obtain cloud home
+CLOUD_HOME_VAR="${CLOUD^^}_HOME"
+CLOUD_HOME="${!CLOUD_HOME_VAR}"
+[[ "${CLOUD_HOME}" ]] || usage "'${CLOUD_HOME_VAR}' not set"
+unset CLOUD_HOME_VAR
+
+# Inotify args
+TARGET="${CLOUD_HOME}"; unset CLOUD_HOME
 EVENTS="attrib,create,delete,modify,move"
-SOCK="${XDG_RUNTIME_DIR}/drivesync/${PROFILE}.fifo"
+PIPE="${XDG_RUNTIME_DIR}/drivesync/${CLOUD}.fifo"
+unset CLOUD
 
-# Socket must be created by corresponding systemd unit
-if [[ ! -p "${SOCK}" ]]; then
-    echoerr "[${THIS}]: '${SOCK}' output socket does not exists, exiting..."
-    exit 1
-fi
+# Pipe must be opened by corresponding systemd unit
+[[ ! -p "${PIPE}" ]] &&
+    usage "'${PIPE}' output pipe not exists"
 
-exec inotifywait --outfile "${SOCK}" \
+exec inotifywait --outfile "${PIPE}" \
                  --event "${EVENTS}" \
                  --no-dereference    \
                  --recursive         \

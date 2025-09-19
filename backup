@@ -1,30 +1,38 @@
 #!/usr/bin/env bash
-
-function echoerr() { cat <<< "$@" 1>&2; }
-
-# Prevent localized dates and error messages
 LANG=C
+#set -e
 
-# Script name & split 'script@cloud' symlink form
-SRC="$(basename ${BASH_SOURCE[0]})"
+function echoerr() {
+    printf "%b\n" "${*}" 1>&2
+}
+
+function usage() {
+    [[ ${#} > 0 ]] && echoerr "[${THIS}] error: ${@}\n"
+    echoerr "usage: ${THIS} [cloud: default '${CLOUD}']"
+    exit ${#}
+}
+
 THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
-CLOUD="${SRC#*@}"
+CLOUD="${CLOUD_DEFAULT:-fastmail}"
 
-# Select default cloud name if can not obtain from the script's name
-[[ "${CLOUD}" == "${SRC}" ]] && CLOUD="${CLOUD_DEFAULT:-fastmail}"
+# Expect not more than one argument
+[[ ${#} > 1 ]] && usage "too many arguments"
+CLOUD="${1:-${CLOUD}}"
 
 # Obtain cloud home
 CLOUD_HOME_VAR="${CLOUD^^}_HOME"
 CLOUD_HOME="${!CLOUD_HOME_VAR}"
+[[ "${CLOUD_HOME}" ]] || usage "'${CLOUD_HOME_VAR}' not set"
+unset CLOUD_HOME_VAR
 
 # Set backup dir
-BACKUP_DIR="${CLOUD_HOME}/backup"
+BACKUP_DIR="${CLOUD_HOME}/backup"; unset CLOUD_HOME
 PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
 
-# Populate environment
+# Validate parent process
 PARENT="$(ps -o comm= ${PPID})"
 case "${PARENT}" in
-    anacron|run-parts|systemd)
+    run-parts|systemd)
         PARENT="${PARENT^}"
         SEND_REPORT=1
         ;;
@@ -34,19 +42,19 @@ case "${PARENT}" in
 esac
 
 # Prepare errors log
-TMP_DIR="${XDG_RUNTIME_DIR}/backup"; mkdir -p "${TMP_DIR}"
+TMP_DIR="${XDG_RUNTIME_DIR}" # /backup"; mkdir -p "${TMP_DIR}"
 ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"
 
 # Do the job
-{ pushd "${HOME}/Sources/dotfiles" 1>/dev/null 2>&1
+{ pushd "${HOME}/Sources/dotfiles" >/dev/null
   mkdir -p "$(dirname ${PACK})"
 
   git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from=-
 
-  echo "$(groups ${USER})" > "${BACKUP_DIR}/dotfiles/groups.list"
+  groups "${USER}" > "${BACKUP_DIR}/dotfiles/groups.list"
   cp "${PACK}" "${BACKUP_DIR}/dotfiles-${HOSTNAME}.tar.xz"
 
-  popd 1>/dev/null 2>&1
+  popd >/dev/null
 } 2> >(tee "${ERR_LOG}")
 
 # Email errors (if any) to 'USER'
@@ -55,8 +63,8 @@ if [[ -s "${ERR_LOG}" ]]; then
         printf "Subject: [${HOSTNAME}]:Backup $(date)\n\n$(cat ${ERR_LOG})" |
             sendmail -F "[${HOSTNAME}]:${PARENT}" "${USER}" 1>/dev/null 2>&1
     fi
-    RET=1
+    ERR=1
 fi
 rm -f "${ERR_LOG}"
 
-exit ${RET}
+exit ${ERR}

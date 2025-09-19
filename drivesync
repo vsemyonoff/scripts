@@ -1,74 +1,92 @@
 #!/usr/bin/env bash
-
+LANG=C
 set -e
 
-THIS="$(basename ${BASH_SOURCE[0]})"
-
-function echoerr() { cat <<< "$@" 1>&2; }
-
-function usage() {
-    echoerr "usage: ${THIS} profile [extra rclone options]"
-    exit 1
+function echoerr() {
+    printf "%b\n" "${*}" 1>&2
 }
 
-# First arg: profile name to sync, the rest will pass to 'rclone'
-[[ ${#} < 1 ]] && usage
-case "${1}" in
-    -*)
-        usage
-        ;;
-    *)
-        PROFILE="${1}"
-        shift
-        ;;
-esac
+function usage() {
+    [[ ${#} > 0 ]] && echoerr "[${THIS}] error: ${@}\n"
+    echoerr "usage: ${THIS} [cloud: default '${CLOUD}'] [extra rclone options]"
+    exit ${#}
+}
 
-CFG_FILE="${XDG_CONFIG_HOME}/drivesync/${PROFILE}.conf"
-LOG_FILE="${XDG_LOG_HOME}/drivesync/${PROFILE}.log"
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+CLOUD="${CLOUD_DFAULT:-fastmail}"
 
-# Validate profile existence
-if [[ ! -r "${CFG_FILE}" ]]; then
-    echoerr "[${THIS}]: invalid profile '${PROFILE}'"
-    usage
+# First arg: cloud name to sync, the rest will be passed to 'rclone'
+if [[ "${1}" ]]; then
+    case "${1}" in
+        [a-z]*|[A-Z]*)
+            CLOUD="${1}"
+            shift
+            ;;
+        -*)
+            # Assuming that it's rclone argument
+            ;;
+        *)
+            usage "invalid cloud name '${1}'"
+            ;;
+    esac
 fi
 
-LOCAL_PATH_VAR="${PROFILE^^}_HOME"
-LOCAL_PATH="${!LOCAL_PATH_VAR}"; unset LOCAL_PATH_VAR
-REMOTE_PATH_VAR="${PROFILE^^}_PATH"
-REMOTE_PATH="drive:${!REMOTE_PATH_VAR}"; unset REMOTE_PATH_VAR
+# Obtain cloud home
+CLOUD_HOME_VAR="${CLOUD^^}_HOME"
+CLOUD_HOME="${!CLOUD_HOME_VAR}"
+[[ "${CLOUD_HOME}" ]] || usage "'${CLOUD_HOME_VAR}' not set"
+unset CLOUD_HOME_VAR
+
+# Rclone drive config
+DRIVE_CFG="${XDG_CONFIG_HOME}/${THIS}/${CLOUD}.conf"
+[[ -r "${DRIVE_CFG}" ]] || usage "invalid cloud drive config '${DRIVE_CFG}'"
+
+# Obtain remote path
+REMOTE_PATH_VAR="${CLOUD^^}_PATH"
+REMOTE_PATH="${!REMOTE_PATH_VAR}"
+[[ "${REMOTE_PATH}" ]] || usage "'${REMOTE_PATH_VAR}' not set"
+unset REMOTE_PATH_VAR
+
+# Local and remote drive path
+LOCAL_PATH="${CLOUD_HOME}"; unset CLOUD_HOME
+DRIVE_PATH="drive:${REMOTE_PATH}"; unset REMOTE_PATH
 CHECK_FILE=".gitkeep"
 
-mkdir -p "${LOCAL_PATH}" "$(dirname ${LOG_FILE})"
+# Validate check-file
+mkdir -p "${LOCAL_PATH}"
 if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
     # Copy check-file from remote if not present
-    rclone copyto --config="${CFG_FILE}"        \
-                  "${REMOTE_PATH}/${CHECK_FILE}"\
+    rclone copyto --config="${DRIVE_CFG}"       \
+                  --verbose                     \
+                  "${DRIVE_PATH}/${CHECK_FILE}"\
                   "${LOCAL_PATH}/${CHECK_FILE}" ||
         echoerr "[${THIS}]: check-file absent, creating the new one..."
     if [[ ! -f "${LOCAL_PATH}/${CHECK_FILE}" ]]; then
         # Create check-file, copy to remote
         touch "${LOCAL_PATH}/${CHECK_FILE}"
-        rclone copyto --config="${CFG_FILE}"        \
+        rclone copyto --config="${DRIVE_CFG}"       \
+                      --verbose                     \
                       "${LOCAL_PATH}/${CHECK_FILE}" \
-                      "${REMOTE_PATH}/${CHECK_FILE}"
+                      "${DRIVE_PATH}/${CHECK_FILE}"
     fi
     # Set resync flag
-    ARGS="--resync"
-else
-    ARGS="--check-access"
+    SYNC="--resync"
 fi
 
+# Log output
+LOG_FILE="${XDG_LOG_HOME}/${THIS}/${CLOUD}.log"; unset CLOUD
+mkdir -p "$(dirname ${LOG_FILE})"
+
 # Sync
-exec rclone bisync --config="${CFG_FILE}"            \
+exec rclone bisync --config="${DRIVE_CFG}"           \
                    "${LOCAL_PATH}"                   \
-                   "${REMOTE_PATH}"                  \
+                   "${DRIVE_PATH}"                   \
                    --compare="size,modtime,checksum" \
                    --check-filename="${CHECK_FILE}"  \
                    --log-file="${LOG_FILE}"          \
                    --create-empty-src-dirs           \
                    --slow-hash-sync-only             \
-                   --log-level NOTICE                \
                    --resilient                       \
                    --metadata                        \
                    --fix-case                        \
-                   ${ARGS} "${@}"
+                   "${SYNC:---check-access}" "${@}"
