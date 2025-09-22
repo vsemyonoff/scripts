@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+LANG=C
+set -e
+
+function echoerr() {
+    printf "%b\n" "${*}" 1>&2
+}
+
+function usage() {
+    [[ ${#} > 0 ]] && echoerr "[${THIS}] error: ${@}\n"
+    echoerr "usage: ${THIS} hourly|daily|weekly|monthly [run-parts args...]"
+    exit ${#}
+}
+
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+
+# Expect one argument
+[[ ${#} < 1 ]] && usage "too few arguments"
+RANGE="${1}"
+
+# Verify argument
+case "${RANGE}" in
+    daily|hourly|monthly|weekly)
+        shift
+        ;;
+    *)
+        usage "invalid '${RANGE}' range specified"
+        ;;
+esac
+
+exec /usr/bin/run-parts "${@}" "${XDG_CONFIG_HOME}/anacron/${RANGE}"

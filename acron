@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+LANG=C
+set -e
 
 ANACRON_TAB="${XDG_CONFIG_HOME}/anacron/schedule"
 ANACRON_SPOOL="${XDG_SPOOL_HOME}/anacron"
