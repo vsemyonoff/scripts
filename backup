@@ -19,14 +19,13 @@ CLOUD="${CLOUD_DEFAULT:-fastmail}"
 [[ ${#} > 1 ]] && usage "too many arguments"
 CLOUD="${1:-${CLOUD}}"
 
-# Obtain cloud home
-CLOUD_HOME_VAR="${CLOUD^^}_HOME"
-CLOUD_HOME="${!CLOUD_HOME_VAR}"
-[[ "${CLOUD_HOME}" ]] || usage "'${CLOUD_HOME_VAR}' not set"
-unset CLOUD_HOME_VAR
+# Obtain cloud backup directory
+CLOUD_BACKUP_VAR="${CLOUD^^}_BACKUP"
+BACKUP_DIR="${!CLOUD_BACKUP_VAR}"
+[[ "${BACKUP_DIR}" ]] || usage "'${CLOUD_BACKUP_VAR}' not set"
+unset CLOUD_BACKUP_VAR
 
-# Set backup dir
-BACKUP_DIR="${CLOUD_HOME}/backup"; unset CLOUD_HOME
+# Set backup package
 PACK="${BACKUP_DIR}/dotfiles/$(date +%Y%m%d-%H%M%S)-${HOSTNAME}.tar.xz"
 
 # Validate parent process
@@ -51,7 +50,7 @@ ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"
 
   git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from=-
 
-  groups "${USER}" > "${BACKUP_DIR}/dotfiles/groups.list"
+  groups > "${BACKUP_DIR}/dotfiles/groups-${HOSTNAME}.list"
   cp "${PACK}" "${BACKUP_DIR}/dotfiles-${HOSTNAME}.tar.xz"
 
   popd >/dev/null
