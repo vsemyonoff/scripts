@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-exec /usr/bin/kitty ${*} 2>${XDG_LOG_HOME}/kitty-error.log
+exec /usr/bin/kitty "${@}" 2> "${XDG_LOG_HOME}/kitty-error.log"
