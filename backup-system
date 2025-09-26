@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+LANG=C
+#set -e
+
+function echoerr() {
+    printf "%b\n" "${*}" 1>&2
+}
+
+function usage() {
+    [[ ${#} > 0 ]] && echoerr "[${THIS}] error: ${@}\n"
+    echoerr "${THIS} script may be called by symlink in "  \
+            "form 'owner-cloud':\n"                        \
+            "    owner - cloud owner name\n"               \
+            "    cloud - cloud name to use\n"              \
+            "or rirectly in such case cloud backup will "  \
+            "be disabled (local backup)"
+    exit ${#}
+}
+
+function self_update() {
+    local old="$(realpath ${BASH_SOURCE[0]})"
+    local new="${1}"; shift
+    local old_sum="$(md5sum ${old} | awk '{ print $1 }')"
+    local new_sum="$(md5sum ${new} | awk '{ print $1 }')"
+    if [[ "${old_sum}" != "${new_sum}" ]]; then
+        echo "Copying: ${new} -> ${old}"
+        cp -f "${new}" "${old}"
+        chmod +x "${old}"
+        exec "${BASH_SOURCE[0]}" "${@}"
+        exit 0
+    fi
+}
+
+# Script name and symlink
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+THISLNK="$(basename ${BASH_SOURCE[0]})"
+
+[[ ${EUID} != 0 ]] && usage "root privileges required, use 'sudo'"
+
+# Validate symlink
+[[ "${THISLNK}" == "${THIS}" ]] && CLOUD_DISABLE=1
+
+# Prepare cloud vars
+if [[ ! "${CLOUD_DISABLE}" ]]; then
+    # Split 'owner@cloud' symlink form
+    OWNER="${THISLNK%%-*}"
+    [[ ! "${OWNER}"  || "${OWNER}"  == "${THISLNK}" ]] && usage "'${THISLNK}' can't resolve 'owner'"
+    CLOUD="${THISLNK#*-}"
+    [[ ! "${CLOUD}" ]] && usage "'${THISLNK}' can't resolve 'cloud'"
+
+    # Obtain cloud backup directory
+    [[ -d "/home/${OWNER}" ]] || usage "'${THISLNK}' user '${OWNER}' not exists"
+    ENV_FILE="/home/${OWNER}/.profile.d/env.d/${CLOUD}.env"
+    [[ -r "${ENV_FILE}" ]] || usage "invalid env file '${ENV_FILE}'"
+    source "${ENV_FILE}"; unset ENV_FILE
+    # Cloud backup dir
+    CLOUD_BACKUP_VAR="${CLOUD^^}_BACKUP"
+    CLOUD_BACKUP_DIR="${!CLOUD_BACKUP_VAR}"
+    if [[ ! "${CLOUD_BACKUP_DIR}" ]]; then
+        echoerr "'${CLOUD_BACKUP_VAR}' not set, disabling cloud backup"
+        unset CLOUD_BACKUP_DIR
+        CLOUD_DISABLE=1
+    elif [[ ! -d "${CLOUD_BACKUP_DIR}" ]]; then
+        echoerr "'${CLOUD_BACKUP_DIR}' not exists, disabling cloud backup"
+        unset CLOUD_BACKUP_DIR
+        CLOUD_DISABLE=1
+    fi
+    unset CLOUD CLOUD_BACKUP_VAR
+fi
+
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+LOCAL_BACKUP_DIR="/boot/backup"; mkdir -p "${LOCAL_BACKUP_DIR}"
+LOCAL_CFG="${LOCAL_BACKUP_DIR}/configs.list"
+LOCAL_PACK="${LOCAL_BACKUP_DIR}/${TIMESTAMP}.tar.xz"
+
+# Update
+if [[ ! "${CLOUD_DISABLE}" ]]; then
+    # Update this script from cloud and restart
+    CLOUDBIN="${CLOUD_BACKUP_DIR}/${THIS}.sh"
+    [[ -r "${CLOUDBIN}" ]] && self_update "${CLOUDBIN}" "${@}"
+
+    # Update configs list from cloud
+    CONFIGS=()
+    CLOUD_CFG="${CLOUD_BACKUP_DIR}/configs.list"
+    [[ -r "${CLOUD_CFG}" ]] && CONFIGS+=("${CLOUD_CFG}")
+    CLOUD_HOST_CFG="${CLOUD_BACKUP_DIR}/configs-${HOSTNAME}.list"
+    [[ -r "${CLOUD_HOST_CFG}" ]] && CONFIGS+=("${CLOUD_HOST_CFG}")
+    if [[ ${#CONFIGS[@]} > 0 ]]; then
+        echo "Using configs: "; printf "\t'%s'\n" "${CONFIGS[@]}"
+        sort -b -u "${CONFIGS[@]}" -o "${LOCAL_CFG}"
+    fi
+    unset CLOUDBIN CONFIGS CLOUD_CFG CLOUD_HOST_CFG
+fi
+
+# Prepare errors log
+TMP_DIR="/run/backup"; mkdir -p "${TMP_DIR}"
+ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"
+unset TMP_DIR
+
+# Do the job
+{ # Store configs on EFI partition
+  tar --restrict --create --xz --file="${LOCAL_PACK}" --directory="/" \
+      --preserve-permissions --ignore-failed-read                     \
+      --exclude-tag=".gitkeep" --files-from="${LOCAL_CFG}"
+
+  if [[ ! "${CLOUD_DISABLE}" ]]; then
+      # Copy to cloud drive
+      BACKUP_DIR="${CLOUD_BACKUP_DIR}/system"
+      PACK="${TIMESTAMP}-${HOSTNAME}.tar.xz"
+      mkdir -p "${BACKUP_DIR}"
+      cp "${LOCAL_PACK}" "${BACKUP_DIR}/${PACK}"
+      chown "${OWNER}:users" "${BACKUP_DIR}/${PACK}"
+      cp "${LOCAL_PACK}" "${CLOUD_BACKUP_DIR}/system-${HOSTNAME}.tar.xz"
+      chown "${OWNER}:users" "${CLOUD_BACKUP_DIR}/system-${HOSTNAME}.tar.xz"
+      unset BACKUP_DIR PACK
+  fi
+} 2> >(tee "${ERR_LOG}")
+
+# TODO: send report
+rm -f "${ERR_LOG}"

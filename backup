@@ -42,13 +42,15 @@ esac
 
 # Prepare errors log
 TMP_DIR="${XDG_RUNTIME_DIR}" # /backup"; mkdir -p "${TMP_DIR}"
-ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"
+ERR_LOG="$(mktemp --tmpdir=${TMP_DIR})"; unset TMP_DIR
 
 # Do the job
 { pushd "${HOME}/Sources/dotfiles" >/dev/null
   mkdir -p "$(dirname ${PACK})"
 
-  git ls-files | tar --create --preserve-permissions --xz --file="${PACK}" --directory="${HOME}" --files-from=-
+  git ls-files | tar --restrict --create --xz --file="${PACK}" --directory="${HOME}" \
+                     --preserve-permissions --ignore-failed-read                     \
+                     --files-from=-
 
   groups > "${BACKUP_DIR}/dotfiles/groups-${HOSTNAME}.list"
   cp "${PACK}" "${BACKUP_DIR}/dotfiles-${HOSTNAME}.tar.xz"
