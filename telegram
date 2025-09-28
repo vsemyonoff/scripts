@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+TGHOME="${XDG_CONFIG_HOME}/telegram"
+
+mkdir -p "${TGHOME}"
+exec /usr/bin/telegram-desktop -startintray -workdir "${TGHOME}" -- "${USER}"

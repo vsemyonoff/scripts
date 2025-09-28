@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+## Custom settings
+#export XSECURELOCK_SAVER="saver_blank"
+#export XSECURELOCK_FONT="Roboto Mono 13"
+#export XSECURELOCK_BLANK_DPMS_STATE="off"
+#export XSECURELOCK_BLANK_TIMEOUT=1
+
+exec /usr/bin/xss-lock -n /usr/lib/xsecurelock/dimmer -l -- /usr/bin/xsecurelock

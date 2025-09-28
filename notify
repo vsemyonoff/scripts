@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+LANG=C
+set -e
+
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+TASK="$(basename $(dirname ${BASH_SOURCE[0]}))"
+
+[[ -z "${DISPLAY}" ]] && exit
+
+exec /usr/bin/notify-send       \
+    --app-name="${THIS^}"       \
+    --urgency=low               \
+    --expire-time=5000          \
+    --icon="${HOME}/.face.icon" \
+    "Anacron (systemd)"         \
+    "${1:-${TASK^} tasks executed}"

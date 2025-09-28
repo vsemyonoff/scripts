@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+exec /usr/bin/picom >"${XDG_LOG_HOME}/picom.log" 2>&1
