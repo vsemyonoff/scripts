@@ -5,7 +5,7 @@ set -e
 
 DATA="/var/lib/postgres/${1:-data}"
 SERVICE="postgresql.service"
-PGPASSFILE="${HOME}/.pgpass"
+PGPASSFILE="${PGPASSFILE:-${XDG_CONFIG_HOME}/psql/pgpass}"
 # Security: use random 'postgres' user password
 PGPASSWORD="$(uuidgen)"
 
@@ -27,6 +27,7 @@ sudo -u postgres bash -c "
 sudo systemctl --system start "${SERVICE}"
 
 # Store password to file
+mkdir --mode=700 --parents "$(dirname ${PGPASSFILE})"
 cat << EOF > "${PGPASSFILE}"
 localhost:5432:postgres:postgres:${PGPASSWORD}
 EOF
@@ -34,7 +35,7 @@ chmod 600 "${PGPASSFILE}"
 unset PGPASSWORD
 
 # Create role for the current user
-#export PGPASSWORD     ;
+export PGPASSFILE     ;
 createuser            \
   --username=postgres \
   --superuser         \
