@@ -5,7 +5,7 @@ set -e
 
 DATA="/var/lib/postgres/${1:-data}"
 SERVICE="postgresql.service"
-PGPASSFILE="${PGPASSFILE:-${XDG_CONFIG_HOME}/psql/pgpass}"
+PGPASSFILE="${PGPASSFILE:-${XDG_CONFIG_HOME}/postgres/pgpass.conf}"
 # Security: use random 'postgres' user password
 PGPASSWORD="$(uuidgen)"
 
