@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+REALLANG="${LANG}"
+LANG=C
+set -e
+
+DATA="/var/lib/postgres/${1:-data}"
+SERVICE="postgresql.service"
+PGPASSFILE="${HOME}/.pgpass"
+# Security: use random 'postgres' user password
+PGPASSWORD="$(uuidgen)"
+
+sudo systemctl --system stop "${SERVICE}"
+
+# Recreate database
+sudo -u postgres bash -c "
+    rm -fr "${DATA}";                  \
+    initdb                             \
+      --pgdata="${DATA}"               \
+      --auth-host=scram-sha-256        \
+      --auth-local=scram-sha-256       \
+      --encoding=UTF8                  \
+      --locale=C.UTF-8                 \
+      --pwfile=<(echo "${PGPASSWORD}") \
+      --set="listen_addresses='*'"     ;
+"
+
+sudo systemctl --system start "${SERVICE}"
+
+# Store password to file
+cat << EOF > "${PGPASSFILE}"
+localhost:5432:postgres:postgres:${PGPASSWORD}
+EOF
+chmod 600 "${PGPASSFILE}"
+unset PGPASSWORD
+
+# Create role for the current user
+#export PGPASSWORD     ;
+createuser            \
+  --username=postgres \
+  --superuser         \
+  --pwprompt          \
+  "${USER}"           ;
+psql --username=postgres <<- SQL >/dev/null
+  -- -- Table/column collation shortcuts
+  -- CREATE COLLATION "native" (LOCALE = '${REALLANG}', PROVIDER = 'libc');
+  -- CREATE COLLATION "ru"     (LOCALE = 'ru_UA.UTF-8', PROVIDER = 'libc');
+  -- CREATE COLLATION "ua"     (LOCALE = 'uk_UA.UTF-8', PROVIDER = 'libc');
+
+  -- Curret user default database
+  CREATE DATABASE "${USER}"
+    WITH
+      TEMPLATE = 'template0'
+      LOCALE = '${REALLANG}'
+      OWNER = '${USER}';
+SQL
