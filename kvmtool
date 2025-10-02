@@ -70,7 +70,7 @@ unset AUDIORDV AUDIOHW
 
 # Fix 'VIDEOHW' for headless VM
 if [[ "${HEADLESS}" ]]; then
-    VIDEOHW="std -display none"
+    VIDEOHW="none -display none"
 fi
 
 # Port forwarding
