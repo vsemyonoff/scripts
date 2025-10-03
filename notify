@@ -1,16 +1,88 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 LANG=C
 set -e
 
-THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
-TASK="$(basename $(dirname ${BASH_SOURCE[0]}))"
+### Options:
+ICON_DIR="${XDG_DATA_HOME}/icons/current" # icons base path
+ICON_DEF="application/notify"             # fallback icon
+ICON_EXT="svg"                            # icon file type
+###
 
-[[ -z "${DISPLAY}" ]] && exit
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+
+# Parse arguments
+ARGS=()
+while [[ "${1}" ]]; do
+    case "${1}" in
+        --icon=*)
+             ICON="${1#*=}"
+             ;;
+        -i)
+             ICON="${2}"
+             shift
+             ;;
+        --*)
+             ARGS+=("${1}")
+             ;;
+        -*)
+             ARGS+=("${1}" "${2}")
+             shift
+             ;;
+        *)
+             [[ "${MESSAGE}" ]] && {
+                 MESSAGE+=" ${1}"
+             } || {
+                 MESSAGE="${1}"
+             }
+             ;;
+    esac
+    shift
+done
+
+# Get parent process name
+PARENT="$(ps -o comm= ${PPID})"
+case "${PARENT}" in
+    run-parts)
+        PARENT="anacron"
+        SCHEDULE="$(basename $(dirname ${BASH_SOURCE[0]}))"
+        MESSAGE="${SCHEDULE^} tasks executed"
+        ICON="calendar/${SCHEDULE}"; unset SCHEDULE
+        ;;
+    bash|sh|zsh)
+        PARENT="terminal"
+        ;;
+    *)
+        ;;
+esac
+
+# Set default icon if not set yet
+ICON="${ICON:-application/${PARENT}}"
+
+# Try supplied icon first
+ICON_FILE_TPL="${ICON_DIR}/%s.${ICON_EXT}"
+ICON_FILE=$(printf "${ICON_FILE_TPL}" "${ICON}")
+
+# Force fallback icon if supplied is n/a
+[[ -r "${ICON_FILE}" ]] || {
+    ICON_FILE=$(printf "${ICON_FILE_TPL}" "${ICON_DEF}")
+}
+
+# Append 'notify-send' icon argument
+ARGS+=("--icon=${ICON_FILE}")
+
+# pass ARGS to 'notify-send'
+set -- "${ARGS[@]}"; unset ARGS
+
+TITLE="${TITLE:-${PARENT^}}"
+
+[[ -z "${DISPLAY}" ]] && {
+    echo "[${THIS}]: ${TITLE} - ${MESSAGE}"
+    exit
+}
 
 exec /usr/bin/notify-send       \
-    --app-name="${THIS^}"       \
-    --urgency=low               \
+    --app-name="${PARENT^}"     \
     --expire-time=5000          \
-    --icon="${HOME}/.face.icon" \
-    "Anacron (systemd)"         \
-    "${1:-${TASK^} tasks executed}"
+    ${@}                        \
+    "${TITLE}"                  \
+    "${MESSAGE}"

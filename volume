@@ -1,0 +1,41 @@
+#!/usr/bin/bash
+
+DEFAULT_SINK="$(pamixer --list-sinks | grep 'Running' | awk '{ print $1 }')"
+SINK="${DEFAULT_SINK:+--sink ${DEFAULT_SINK}}"
+
+function get() {
+    local state="n/a"
+    case "$(pamixer ${SINK} --get-mute)" in
+        false) state="unmuted" ;;
+         true) state="muted"   ;;
+            *)                 ;;
+    esac
+
+    local level=$(pamixer ${SINK} --get-volume)
+    notify --hint="int:value:${level}" \
+           --icon="volume/${state}"
+
+    echo "${state}" "${level}"
+}
+
+function decrease() {
+    pamixer ${SINK} --decrease "${1:-5}"
+    get
+}
+
+function increase() {
+    pamixer ${SINK} --increase "${1:-5}"
+    get
+}
+
+function mute() {
+    pamixer ${SINK} --toggle-mute
+    get
+}
+
+case "${1}" in
+    -) decrease "${2}" ;;
+    +) increase "${2}" ;;
+    m) mute            ;;
+    *) get             ;;
+esac

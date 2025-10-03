@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-SINK="$(pamixer --list-sinks | grep 'Running' | awk '{ print $1 }')"
-
-exec pamixer ${SINK:+--sink ${SINK}} "${@}"
