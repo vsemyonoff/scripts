@@ -21,9 +21,10 @@ function get() {
         state="muted"
     }
 
-    notify --hint="string:x-canonical-private-synchronous:${THIS}" \
-           --hint="int:value:${level}"                             \
-           --icon="volume/${state}"                                \
+    notify --hint="string:x-canonical-private-synchronous:${THIS}/${state}" \
+           --hint="int:value:${level}" \
+           --icon="volume/${state}"    \
+           --expire-time=1000          \
            "${level}%"
 
     echo "${THIS^}: ${state}" "${level}"

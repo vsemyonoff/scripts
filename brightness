@@ -12,8 +12,9 @@ function get() {
     (( ${level} > 70 )) && state="high"
 
     notify --hint="string:x-canonical-private-synchronous:${THIS}" \
-           --hint="int:value:${level}"                             \
-           --icon="brightness/${state}"                            \
+           --hint="int:value:${level}"  \
+           --icon="brightness/${state}" \
+           --expire-time=1000           \
            "${level}%"
 
     echo "${THIS^}: ${state} ${level}"
