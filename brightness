@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+LANG=C
+set -e
+
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+
+function get() {
+    local level=$(xbacklight -get)
+
+    local state="low";
+    (( ${level} > 30 )) && state="middle"
+    (( ${level} > 60 )) && state="high"
+
+    #       --icon="brightness/${state}"                            \
+    notify --hint="string:x-canonical-private-synchronous:${THIS}" \
+           --hint="int:value:${level}"                             \
+           "${level}%"
+
+    echo "${THIS^}: ${state} ${level}"
+}
+
+function decrease() {
+    xbacklight -"${1:-5}"
+    get
+}
+
+function increase() {
+    xbacklight +"${1:-5}"
+    get
+}
+case "${1}" in
+    -) decrease "${2}" ;;
+    +) increase "${2}" ;;
+    *) get             ;;
+esac
