@@ -9,11 +9,11 @@ function get() {
 
     local state="low";
     (( ${level} > 30 )) && state="middle"
-    (( ${level} > 60 )) && state="high"
+    (( ${level} > 70 )) && state="high"
 
-    #       --icon="brightness/${state}"                            \
     notify --hint="string:x-canonical-private-synchronous:${THIS}" \
            --hint="int:value:${level}"                             \
+           --icon="brightness/${state}"                            \
            "${level}%"
 
     echo "${THIS^}: ${state} ${level}"
