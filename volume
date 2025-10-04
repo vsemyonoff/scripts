@@ -1,21 +1,32 @@
 #!/usr/bin/bash
+LANG=C
+set -e
 
-DEFAULT_SINK="$(pamixer --list-sinks | grep 'Running' | awk '{ print $1 }')"
-SINK="${DEFAULT_SINK:+--sink ${DEFAULT_SINK}}"
+THIS="$(basename $(realpath ${BASH_SOURCE[0]}))"
+
+DEF_SINK="$(pamixer --list-sinks | grep 'Running' | awk '{ print $1 }')"
+DEF_SINK="${DEF_SINK:-$(pamixer --get-default-sink | tail -1 | awk '{ print $1 }')}"
+SINK="${DEF_SINK:+--sink ${DEF_SINK}}"
 
 function get() {
-    local state="n/a"
-    case "$(pamixer ${SINK} --get-mute)" in
-        false) state="unmuted" ;;
-         true) state="muted"   ;;
-            *)                 ;;
-    esac
-
     local level=$(pamixer ${SINK} --get-volume)
-    notify --hint="int:value:${level}" \
-           --icon="volume/${state}"
 
-    echo "${state}" "${level}"
+    local state="$(pamixer ${SINK} --get-mute)"
+    [[ "${state}" == "false" ]] && {
+        state="off"
+        (( ${level} > 0  )) && state="low"    || true
+        (( ${level} > 30 )) && state="middle" || true
+        (( ${level} > 70 )) && state="high"   || true
+    } || {
+        state="muted"
+    }
+
+    notify --hint="string:x-canonical-private-synchronous:${THIS}" \
+           --hint="int:value:${level}"                             \
+           --icon="volume/${state}"                                \
+           "${level}%"
+
+    echo "${THIS^}: ${state}" "${level}"
 }
 
 function decrease() {
