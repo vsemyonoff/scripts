@@ -80,9 +80,9 @@ TITLE="${TITLE:-${PARENT^}}"
     exit
 }
 
-exec /usr/bin/notify-send       \
-    --app-name="${PARENT^}"     \
-    --expire-time=5000          \
-    ${@}                        \
-    "${TITLE}"                  \
+exec /usr/bin/notify-send  \
+    --app-name="${PARENT}" \
+    --expire-time=5000     \
+    ${@}                   \
+    "${TITLE}"             \
     "${MESSAGE}"
