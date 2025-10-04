@@ -1,0 +1,5 @@
+#!/usr/bin/bash
+REALLANG="${LANG}"; LANG=C
+set -e
+
+notify "$(cal)"
