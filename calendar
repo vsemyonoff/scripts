@@ -1,8 +1,11 @@
 #!/usr/bin/bash
 set -e
 
-CAL=$(cal --color=always \
-      | sed 's|\[7m|<span foreground="black" background="white">|' \
-      | sed 's|\[0m|</span>|')
+SPAN_S='<span foreground="black" background="white">'
+SPAN_E='</span>'
+
+CAL=$(cal --color=always          \
+      | sed "s|\[7m|${SPAN_S}|" \
+      | sed "s|\[0m|${SPAN_E}|");
 
 TITLE="$(date '+%a, %d %B %Y %H:%M')" notify "\n${CAL}"
