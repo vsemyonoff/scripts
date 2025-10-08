@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+FILE="${XDG_PICTURES_DIR}/Scrnshots/${HOSTNAME}-$(date +%Y%m%d-%H%M%S).png"
+echo "${FILE}" | xsel --clipboard
+exec scrot "${FILE}"

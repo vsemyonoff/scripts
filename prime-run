@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 function on_exit() {
-    sudo /usr/local/bin/nvgpupm disable
+    sudo nvgpupm disable
 }
 trap on_exit EXIT
 
-sudo /usr/local/bin/nvgpupm enable
+sudo nvgpupm enable
 /usr/bin/prime-run "${@}"

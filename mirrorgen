@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-pacman -S --needed pacman-contrib || exit 1
-cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
-awk '/^## Germany$/{f=1}f==0{next}/^$/{exit}{print substr($0, 2)}' /etc/pacman.d/mirrorlist.pacnew | tee /etc/pacman.d/mirrorlist.germany
-rankmirrors -n 6 /etc/pacman.d/mirrorlist.germany | tee /etc/pacman.d/mirrorlist

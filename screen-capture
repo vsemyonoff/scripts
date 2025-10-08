@@ -1,0 +1,6 @@
+#!/usr/bin/bash -e
+
+FPS=60
+SCALE=-1
+
+ffmpeg -probesize 100M -f x11grab -framerate "${FPS}" -i "${DISPLAY}" -vf "scale=-1:${SCALE},fps=fps=${FPS},format=yuv420p" -f v4l2 /dev/video0

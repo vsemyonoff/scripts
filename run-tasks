@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash -e
 LANG=C
-set -e
 
 function echoerr() {
     printf "%b\n" "${*}" 1>&2

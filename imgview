@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
 
-workdir="$(pwd)"
-if [[ -n "${1}" ]]; then
-    [[ ! -r "${1}" ]] && echo "error: invalid path '${1}'" && exit 1
+path="$(realpath --no-symlinks "${1:-$(pwd)}")"
+[[ -r "${path}" ]] || {
+    echo "error: invalid path '${path}'" >&2
+    exit 1
+}
 
-    arg=$(realpath --no-symlinks "${1}")
+workdir="${path}"
+[[ -d "${path}/" ]] || {
+    workdir="$(dirname "${path}")"
+    current="$(basename "${path}")"
+}
+unset path
 
-    if [[ -d "${arg}" ]]; then
-        workdir="${arg}"
-        unset arg
-    else
-        workdir=$(dirname "${arg}")
-        arg=$(basename "${arg}")
-    fi
-fi
-
-readarray -d '' files < <(find "${workdir}/" -maxdepth 1 -type f,l -print0 | sort -z)
-if [[ -n "${arg}" ]]; then
-   idx=$(printf '%s\n' "${files[@]}" | sed -n "/${arg}/{=; q;}")
-fi
-
-exec printf '%q ' "${files[@]}" | xargs imv -f -s shrink ${idx:+-n ${idx}} >/dev/null
+{ pushd "${workdir}" >/dev/null
+  imv -f -s shrink ${current:+-n "${current}"} *
+  popd >/dev/null
+}

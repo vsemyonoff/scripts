@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
-if [ ${#} -ne 1 ]; then
-    echo "usage: ${0} output"
-    exit 1
-fi
+# Default audio source
+asource="$(pactl list short sources | head -1 | awk '{ print $2 }')"
+# Default video source
+vsource="/dev/video0"
+# Record name
+output="${XDG_VIDEOS_DIR}/Camrec/${1:-record-$(date '+%Y%m%d-%H%M%S')}.mp4"
 
-ffmpeg -y -f alsa -ac 1 -ar 44100 -i default -f v4l2 -r 60 -video_size 1280x720 -i /dev/video0 "${1}"
+# Do the job
+ffmpeg -y -f pulse -ac 2 -i "${asource}"      \
+          -f v4l2        -i "${vsource}"      \
+          -c:v libx264 -preset medium -crf 23 \
+          -c:a aac -b:a 128k                  \
+          "${output}"
