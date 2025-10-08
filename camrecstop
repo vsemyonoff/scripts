@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+kill -s INT $(pgrep ffmpeg | sort -nr)

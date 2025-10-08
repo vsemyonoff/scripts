@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
 
 # Default audio source
-asource="$(pactl list short sources | head -1 | awk '{ print $2 }')"
+asource="$(pactl get-default-source)"
 # Default video source
 vsource="/dev/video0"
+
 # Record name
-output="${XDG_VIDEOS_DIR}/Camrec/${1:-record-$(date '+%Y%m%d-%H%M%S')}.mp4"
+outdir="${XDG_VIDEOS_DIR}/Camrecs"
+output="${outdir}/${1:-record-$(date '+%Y%m%d-%H%M%S')}.mp4"
+
+# Copy output file path to clipboard
+echo -n "${output}" | xsel --clipboard
 
 # Do the job
-ffmpeg -y -f pulse -ac 2 -i "${asource}"      \
-          -f v4l2        -i "${vsource}"      \
-          -c:v libx264 -preset medium -crf 23 \
-          -c:a aac -b:a 128k                  \
-          "${output}"
+mkdir -p "${outdir}"
+exec ffmpeg -y -f pulse -ac 2 -i "${asource}"      \
+               -f v4l2        -i "${vsource}"      \
+               -c:v libx264 -preset medium -crf 23 \
+               -c:a aac -b:a 256k                  \
+               "${output}"

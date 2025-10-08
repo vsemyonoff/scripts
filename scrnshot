@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
-FILE="${XDG_PICTURES_DIR}/Scrnshots/${HOSTNAME}-$(date +%Y%m%d-%H%M%S).png"
-echo "${FILE}" | xsel --clipboard
-exec scrot "${FILE}"
+# Screenshot name
+outdir="${XDG_PICTURES_DIR}/Scrnshots"
+output="${outdir}/${1:-${HOSTNAME}-$(date +%Y%m%d-%H%M%S)}.png"
+
+# Copy output file path to clipboard
+echo -n "${output}" | xsel --clipboard
+
+# Do the job
+mkdir -p "${outdir}"
+exec scrot "${output}"

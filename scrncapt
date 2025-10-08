@@ -1,0 +1,15 @@
+#!/usr/bin/bash -e
+
+# Options
+FPS=30
+SCALE=-1 # -1 (native) | 720 (hd) | 1080 (full hd)
+
+# FFmpeg settings
+VFILTER="scale=-1:${SCALE},fps=fps=${FPS},format=yuv420p"
+VDEVICE="/dev/video0"
+
+# Do the job
+exec ffmpeg -probesize 100M                                \
+            -f x11grab -framerate "${FPS}" -i "${DISPLAY}" \
+            -vf "${VFILTER}"                               \
+            -f v4l2 "${VDEVICE}"
