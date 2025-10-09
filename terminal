@@ -1,4 +1,38 @@
 #!/usr/bin/bash
 
+THIS="${BASH_SOURCE[0]}"
+
+TERMREAL="${TERMINAL}"
+[[ -L "${THIS}" ]] && TERMINAL="$(basename ${THIS})"
+
+ARGS=()
+case "${TERMINAL}" in
+    ghostty)
+        [[ "${TERMREAL}" == "ghostty" ]] && {
+            # If no args supplied - just open new window
+            [[ ${#} == 0 ]] && ARGS+="+new-window"
+        }
+        ;;
+    xterm)
+        # Run default terminal in such case
+        [[ "${TERMREAL}" == "ghostty" ]] && {
+            ARGS+=("--env=TERMINAL=${TERMINAL}")
+            ARGS+=("--gtk-single-instance=false")
+            ARGS+=("--initial-window=true")
+            ARGS+=("--quit-after-last-window-closed=true")
+        }
+        ;;
+    *)
+        # No-op
+        ;;
+esac
+
+# Log file
 LOG="${XDG_LOG_HOME}/${TERMINAL}-error.log"
-exec "/usr/bin/${TERMINAL}" "${@}" 2>"${LOG}"
+
+# Emulate symlinked with default if it's not installed
+export TERMINAL
+[[ -x "/usr/bin/${TERMINAL}" ]] || TERMINAL="${TERMREAL}"
+unset TERMREAL
+
+exec "/usr/bin/${TERMINAL}" "${ARGS[@]}" "${@}" 2>"${LOG}"
