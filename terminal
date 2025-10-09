@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+LOG="${XDG_LOG_HOME}/${TERMINAL}-error.log"
+exec "/usr/bin/${TERMINAL}" "${@}" 2>"${LOG}"
