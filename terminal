@@ -13,17 +13,13 @@ case "${TERMINAL}" in
             [[ ${#} == 0 ]] && ARGS+="+new-window"
         }
         ;;
-    xterm)
-        # Run default terminal in such case
+    *)
         [[ "${TERMREAL}" == "ghostty" ]] && {
             ARGS+=("--env=TERMINAL=${TERMINAL}")
             ARGS+=("--gtk-single-instance=false")
             ARGS+=("--initial-window=true")
             ARGS+=("--quit-after-last-window-closed=true")
         }
-        ;;
-    *)
-        # No-op
         ;;
 esac
 
