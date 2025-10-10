@@ -31,4 +31,4 @@ export TERMINAL
 [[ -x "/usr/bin/${TERMINAL}" ]] || TERMINAL="${TERMREAL}"
 unset TERMREAL
 
-exec "/usr/bin/${TERMINAL}" "${ARGS[@]}" "${@}" 2>"${LOG}"
+exec "/usr/bin/${TERMINAL}" "${ARGS[@]}" "${@}" 2>"${LOG}" &
