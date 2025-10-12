@@ -51,4 +51,21 @@ runcmd:
 output : { all : '| tee -a /var/log/vmsetup.log' }
 EOF
 
-/usr/bin/mkisofs -follow-links -output seed.iso -volid cidata -joliet -rock "${SEEDDIR}"
+# Generate 'admin' user configs package
+USERPACK="${SEEDDIR}/configs/userpack"
+[[ -r "${USERPACK}.list" ]] && {
+  tar --restrict --create --xz --file="${USERPACK}.tar.xz" --directory="${HOME}" \
+                 --preserve-permissions --ignore-failed-read                     \
+                 --files-from="${USERPACK}.list"
+}
+
+# Generate system configs package
+SYSPACK="${SEEDDIR}/configs/syspack"
+[[ -r "${SYSPACK}.list" ]] && {
+  tar --restrict --create --xz --file="${SYSPACK}.tar.xz" --directory="/" \
+                 --preserve-permissions --ignore-failed-read              \
+                 --exclude-tag=".gitkeep" --files-from="${SYSPACK}.list"
+}
+
+#/usr/bin/mkisofs -follow-links -output seed.iso -volid cidata -joliet -rock "${SEEDDIR}"
+/usr/bin/mkisofs -output seed.iso -volid cidata -joliet -rock "${SEEDDIR}"
