@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 
 ###
 # Example '${WINEPREFIX}/game.cfg' file
@@ -7,33 +7,23 @@
 #EXE_FILE="Program.exe"
 #EXE_OPTS=
 
+# realpath -s $(readlink ...)
+
 CWD="$(pwd)"
 
-# Detect wine prefix
-THIS="${0}"
-RELPATH="$(realpath $(dirname ${THIS}))"
-if [[ ! -L "${THIS}" ]]; then
+THIS="$(realpath -s "${BASH_SOURCE[0]}")"
+[[ -L "${THIS}" ]] || {
     echo "error: '$(basename ${THIS})' assumed to be symlinked inside 'WINEPREFIX'"
     exit 1
-fi
+}
+
+# Detect wine prefix
 while [[ -L "${THIS}" ]]; do
-    LINK="$(readlink ${THIS})"
-    case "${LINK}" in
-        /*)
-            RELPATH="$(dirname ${LINK})"
-            ;;
-        ./*|../*)
-            RELPATH="${RELPATH}/$(dirname ${LINK})"
-            ;;
-    esac
-    THIS_BASE="${RELPATH}/$(basename ${LINK})"
-    if [[ ! -L "${THIS_BASE}" ]]; then
-        break
-    fi
-    THIS="${THIS_BASE}"
+    LAST_LINK="${THIS}"
+    THIS="$(realpath -s "$(readlink "${THIS}")")"
 done
-export WINEPREFIX="$(realpath $(dirname ${THIS}))"
-unset RELPATH LINK THIS THIS_BASE
+
+export WINEPREFIX="$(dirname "${LAST_LINK}")"; unset LAST_LINK
 
 # Load config if any
 CONFIG="${CONFIG:-${WINEPREFIX}/game.cfg}"
