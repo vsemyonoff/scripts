@@ -1,0 +1,23 @@
+#!/usr/bin/bash
+
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita'
+gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
+gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+
+gsettings set org.gnome.desktop.interface cursor-blink false
+
+gsettings set org.gnome.desktop.interface font-antialiasing rgba
+gsettings set org.gnome.desktop.interface font-hinting slight
+gsettings set org.gnome.desktop.interface font-rendering automatic # manual
+gsettings set org.gnome.desktop.interface font-rgba-order rgb
+
+gsettings set org.gnome.desktop.interface document-font-name 'Roboto Condenced 12'
+gsettings set org.gnome.desktop.interface font-name 'Roboto 10'
+gsettings set org.gnome.desktop.interface monospace-font-name 'RobotoMono Nerd Font Mono 10'
+
+gsettings set org.gnome.desktop.interface toolbar-icons-size small
+gsettings set org.gnome.desktop.interface toolbar-style icons
+
+gsettings set org.gnome.desktop.sound event-sounds false
+gsettings set org.gnome.desktop.sound input-feedback-sounds false
