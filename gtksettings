@@ -2,7 +2,7 @@
 
 gsettings set org.gnome.desktop.interface color-scheme prefer-dark
 gsettings set org.gnome.desktop.interface cursor-theme 'Adwaita'
-gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
+gsettings set org.gnome.desktop.interface gtk-theme "${GTK_CUSTOM_THEME:-Adwaita}"
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
 
 gsettings set org.gnome.desktop.interface cursor-blink false
