@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+log="${XDG_LOG_HOME:-/tmp}/xsel.log"
+
 # Parse arguments
 args=()
 while [[ "${1}" ]]; do
@@ -15,7 +17,7 @@ while [[ "${1}" ]]; do
         args+=("--input")
         ;;
     -o | -out)
-        args+=("--ouptut")
+        args+=("--output")
         ;;
     -quiet)
         args+=("--nodetach")
@@ -48,8 +50,7 @@ while [[ "${1}" ]]; do
     esac
     shift
 done
-args+=("--logfile" "${XDG_LOG_HOME}/xsel.log")
 
 set -- "${args[@]}"
 
-exec xsel "${@}"
+exec xsel "${@}" 2>"${log}"
